@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang=ru><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name=theme-color content="#12161d">
+<link rel=manifest href="manifest.webmanifest">
+<link rel=apple-touch-icon href="icon-192.png">
+<meta name=mobile-web-app-capable content=yes>
+<meta name=apple-mobile-web-app-status-bar-style content=black-translucent>
+<title>ADAU DSP</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#0f131a;--card:#171d27;--line:#232c3b;--tx:#e9eff8;--mut:#8794a8;--acc:#4f8cff}
+body{margin:0;padding:0 0 30px;background:var(--bg);color:var(--tx);
+ font-family:system-ui,-apple-system,Segoe UI,sans-serif;-webkit-tap-highlight-color:transparent}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+ padding:14px 14px 8px;background:rgba(15,19,26,.9);backdrop-filter:blur(12px)}
+header b{font-size:17px;font-weight:650;letter-spacing:.2px}
+.ver{font-size:10px;color:#5b687c;font-weight:400;letter-spacing:.04em}
+.pill{font-size:11.5px;padding:5px 10px;border-radius:20px;background:#1b2230;color:#93a1b5}
+.pill.ok{background:#12301e;color:#54d977}
+.pill.bad{background:#341a1c;color:#ff7b72}
+nav{position:sticky;top:46px;z-index:19;display:flex;gap:3px;margin:0 14px 8px;padding:3px;
+ border-radius:12px;background:#151b25;backdrop-filter:blur(12px)}
+.tab{flex:1;padding:8px;border:0;border-radius:9px;background:transparent;color:#8b98ac;
+ font-size:13.5px;font-weight:500;transition:.18s}
+.tab.on{background:#28344a;color:#eaf1ff}
+section.page{padding:0 14px}
+.page{display:none}.page.on{display:block}
+.card{background:var(--card);border-radius:15px;padding:13px;margin:9px 0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:4px 0}
+.muted{color:var(--mut);font-size:13px;line-height:1.45}
+.ok{color:#54d977}.bad{color:#ff7b72}
+/* индикаторы DSP и шины: точки в шапке */
+.hstat{display:inline-flex;align-items:center;gap:7px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3a4557;transition:.2s}
+.dot.ok{background:#54d977;box-shadow:0 0 6px #54d97799}
+.dot.bad{background:#ff7b72;box-shadow:0 0 6px #ff7b7299}
+/* параметры: группы «Выход 1 / Выход 2 / Общее» */
+.group{margin:14px 0 2px}
+.group h2{margin:0 0 6px 4px;font-size:11px;font-weight:650;letter-spacing:.1em;
+ text-transform:uppercase;color:#68778d}
+.plist{background:var(--card);border-radius:15px;padding:0 13px}
+.prow{padding:9px 0 10px;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.prow b{font-size:15px;font-weight:600}
+/* Bass Boost: свёрнутая строка, раскрывается по тапу */
+.bb{padding-bottom:10px}
+.bbhead{cursor:pointer;-webkit-user-select:none;user-select:none}
+.bbsum{margin-left:auto;font-size:12.5px;color:#8b98ac;font-variant-numeric:tabular-nums}
+.bbarrow{width:14px;text-align:center;font-size:11px;color:#75839a;transition:transform .2s}
+.bb.open .bbarrow{transform:rotate(180deg)}
+.bbgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-height:0;overflow:hidden;
+ margin-top:0;transition:max-height .22s ease,margin-top .22s ease}
+.bb.open .bbgrid{max-height:80px;margin-top:4px}
+.bbcol{min-width:0}
+.bbtop{display:flex;align-items:baseline;justify-content:space-between;gap:4px}
+.bbcap{font-size:11px;color:#7d8b9f}
+.bbcol input.num{width:3.3em;font-size:16px}
+.bbcol .unit{font-size:11px}
+.bbcol input[type=range]{margin-top:2px}
+input[type=range]{-webkit-appearance:none;width:100%;height:22px;background:transparent;margin:2px 0 0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:#333e51}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-8px;
+ border-radius:50%;background:var(--acc);border:2px solid #0f131a;box-shadow:0 1px 4px #0007}
+.val{cursor:pointer;border-bottom:1px dashed #3c475b;font-variant-numeric:tabular-nums}
+.val.off{color:#ff7b72;border-bottom-color:#5a2a2e}
+input[type=checkbox]{accent-color:var(--acc);width:20px;height:20px;margin:0}
+.sw{position:relative;display:inline-block;width:50px;height:28px;margin:0;flex:0 0 auto}
+.sw input{opacity:0;width:0;height:0;margin:0}
+.sw i{position:absolute;inset:0;background:#333e51;border-radius:30px;transition:.2s}
+.sw i:after{content:'';position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;
+ background:#fff;transition:.2s}
+.sw input:checked+i{background:#e5484d}
+.sw input:checked+i:after{transform:translateX(22px)}
+input[type=text],input[type=password],input[type=number],select{
+ width:100%;padding:11px;border-radius:10px;border:1px solid #333c4d;background:#0e1219;
+ color:#e7ecf3;font-size:15px;margin:4px 0 12px}
+/* ручной ввод значения параметра: компактное поле + единица */
+.valbox{display:inline-flex;align-items:baseline;gap:3px;flex:0 0 auto}
+input.num{width:4.8em;padding:0 2px;margin:0;border:0;border-bottom:1px dashed #3c475b;
+ border-radius:0;background:transparent;color:var(--tx);font-size:18px;font-weight:600;
+ text-align:right;font-variant-numeric:tabular-nums}
+input.num:focus{outline:0;border-bottom-color:var(--acc)}
+.unit{cursor:pointer;font-size:12.5px;color:#7d8b9f}
+label{display:block;font-size:13px;color:#9aa7b8;margin-top:2px}
+button,.btn{display:inline-block;padding:11px 16px;border-radius:10px;border:0;background:var(--acc);
+ color:#fff;font-size:14px;cursor:pointer;margin:4px 6px 4px 0}
+button.ghost{background:#39445a}
+button:active{transform:scale(.97)}
+.btns{display:flex;flex-wrap:wrap;gap:4px}
+/* пресеты: имя (правится на месте) + «Взять» / «Сохранить» */
+.pslot{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--line)}
+.pslot:last-child{border-bottom:0}
+input.pname{flex:1 1 auto;min-width:0;width:auto;margin:0;padding:9px 10px;font-size:14px;
+ border-color:#2c3648;background:#121822}
+input.pname:focus{border-color:var(--acc);background:#131c2c}
+input.pname.on{border-color:#3f6fbe;color:#dbe8ff}
+.pslot button{margin:0;padding:9px 11px;font-size:13px;flex:0 0 auto}
+.pslot button:disabled{opacity:.38}
+#toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:var(--acc);color:#fff;
+ padding:11px 18px;border-radius:24px;font-size:14px;opacity:0;transition:.25s;pointer-events:none}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.cmdlog{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#8ea0b8;
+ white-space:pre-wrap;word-break:break-all;background:#0e1219;border:1px solid #222b3a;
+ border-radius:10px;padding:9px;margin:8px 0;max-height:220px;overflow:auto}
+a{color:#5fb3ff;text-decoration:none}
+</style></head><body>
+
+<header><b>ADAU DSP <small class=ver id=ver>v2.0.0</small></b>
+ <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i><span id=pill class=pill>нет связи</span></span>
+</header>
+
+<nav>
+ <button class="tab on" data-t=main>Пульт</button>
+ <button class=tab data-t=conn>BLE</button>
+ <button class=tab data-t=diag>Диагностика</button>
+</nav>
+
+<section id=main class="page on">
+  <div id=params></div>
+  <div class=card>
+    <div class=row><b>Пресеты</b><span class=muted id=s-preset></span></div>
+    <div id=slots></div>
+  </div>
+</section>
+
+<section id=conn class=page>
+  <div class=card>
+    <div class=row><b id=c-name>Не подключено</b><b id=c-state class=muted>—</b></div>
+    <button id=c-btn onclick=bleToggle()>Подключить</button>
+    <p class=muted>Плата <b>ADAU-DSP</b> рядом (до ~10 м). Chrome спросит
+    разрешение на Bluetooth — выбери устройство <b>ADAU-DSP</b>. Если списка
+    нет, включи геолокацию: Android без неё не сканирует BLE.</p>
+  </div>
+  <div class=card>
+    <div class=row><span class=muted>Прошивка</span><b id=c-ver>—</b></div>
+    <div class=row><span class=muted>Устройство</span><b id=c-dev>—</b></div>
+    <div class=row><span class=muted>Задержка</span><b id=c-ping>—</b></div>
+    <div class=row><span class=muted>ADAU1701</span><b id=c-adau>—</b></div>
+    <div class=btns>
+      <button class=ghost onclick=blePing()>Проверить связь</button>
+      <button class=ghost onclick=bleForget()>Забыть устройство</button>
+    </div>
+  </div>
+  <div class=card>
+    <b>Установить как приложение</b>
+    <p class=muted>Chrome: меню ⋮ → «Добавить на главный экран». Откроется
+    без адресной строки, как обычное приложение. Интернет не нужен.
+    iPhone/Safari Web Bluetooth не поддерживают — нужен Android.</p>
+  </div>
+</section>
+
+<section id=diag class=page>
+  <div class=card>
+    <div class=row><span class=muted>ADAU1701</span><b id=d-adau>…</b></div>
+    <div class=row><span class=muted>Связь</span><b id=d-link>…</b></div>
+    <div class=row><span class=muted>Пресет</span><b id=d-preset>…</b></div>
+  </div>
+  <div class=card>
+    <b>Команды BLE</b>
+    <p class=muted>Протокол простой: текст, одна команда на строку.
+    Ответ — JSON-строка.</p>
+    <div id=cmdlog class=cmdlog>—</div>
+    <div class=btns>
+      <button class=ghost onclick=bleCmd('state')>state</button>
+      <button class=ghost onclick=bleCmd('ping')>ping</button>
+      <button class=ghost onclick=bleCmd('defaults')>defaults</button>
+    </div>
+  </div>
+</section>
+
+<div id=toast></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let S=null, timers={}, sent={}, bbOpen={};
+const inflight={}, queued={};
+const fmt=(v,u)=>(+v).toFixed(1)+(u?' '+u:'');
+const fmtN=v=>(+v).toFixed(1);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ------------------------------------------------------------ BLE (Web Bluetooth)
+// Nordic UART Service: пишем текст в RX, ответы приходят уведомлениями из TX.
+const NUS_SVC='6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const NUS_RX ='6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+const NUS_TX ='6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+
+const ble={dev:null,rx:null,tx:null,buf:'',dec:null,mtu:20,ping:0};
+const pending=[];        // ожидающие ответа команды: {resolve,reject,timer}
+
+const bleOn=()=>!!ble.rx;
+const bleOk=()=>!!(navigator.bluetooth && navigator.bluetooth.requestDevice);
+
+function logCmd(s){
+  const el=$('#cmdlog'); if(!el) return;
+  const t=new Date().toLocaleTimeString('ru-RU',{hour12:false});
+  if(el.dataset.raw!=='1'){ el.textContent=''; el.dataset.raw='1'; }
+  el.textContent+=(el.textContent?'\n':'')+t+'  '+s;
+  el.scrollTop=el.scrollHeight;
+}
+
+// Запись: длинные строки режем по 20 байт — так работает любой телефон,
+// плата склеивает куски обратно и разбирает по '\n'.
+async function bleWrite(text){
+  if(!ble.rx) throw new Error('нет связи');
+  const data=new TextEncoder().encode(text+'\n');
+  for(let off=0;off<data.length;off+=20){
+    const part=data.subarray(off,off+20);
+    if(ble.rx.writeValueWithoutResponse) await ble.rx.writeValueWithoutResponse(part);
+    else await ble.rx.writeValue(part);
+  }
+}
+
+function onLine(line){
+  logCmd('← '+line);
+  let o=null;
+  try{ o=JSON.parse(line); }catch(e){}
+  if(o){
+    if(o.params) applyState(o);
+  }
+  const w=pending.shift();
+  if(w){ clearTimeout(w.timer); o?w.resolve(o):w.resolve(line); }
+}
+
+function onChunk(e){
+  ble.buf+=ble.dec.decode(e.target.value,{stream:true});
+  let k;
+  while((k=ble.buf.indexOf('\n'))>=0){
+    const line=ble.buf.slice(0,k).trim();
+    ble.buf=ble.buf.slice(k+1);
+    if(line) onLine(line);
+  }
+  if(ble.buf.length>4000) ble.buf='';
+}
+
+// Команда с ответом (state / preset / defaults / ping).
+function ask(cmd,timeout=5000){
+  if(!ble.rx) return Promise.reject(new Error('нет связи'));
+  return new Promise((resolve,reject)=>{
+    const w={resolve,reject,timer:0};
+    pending.push(w);
+    w.timer=setTimeout(()=>{
+      const k=pending.indexOf(w); if(k>=0) pending.splice(k,1);
+      reject(new Error('нет ответа'));
+    },timeout);
+    logCmd('→ '+cmd);
+    bleWrite(cmd).catch(err=>{
+      const k=pending.indexOf(w); if(k>=0) pending.splice(k,1);
+      clearTimeout(w.timer); reject(err);
+    });
+  });
+}
+
+// Диспетчер старых URL: остальной код не пришлось переписывать.
+async function api(u){
+  const m=u.match(/^\/api\/([a-z]+)\?(.*)$/) || u.match(/^\/api\/([a-z]+)$/);
+  const path=m[1], q=new URLSearchParams(m[2]||'');
+  if(path==='state')    return ask('state');
+  if(path==='defaults') return ask('defaults');
+  if(path==='preset'){
+    const slot=(+q.get('slot'))+1, act=q.get('act');
+    if(act==='rename') return ask('preset '+slot+' name '+(q.get('name')||''));
+    return ask('preset '+slot+' '+act);
+  }
+  if(path==='set'){
+    // без ответа: плата применит и запомнит сама
+    if(!ble.rx) throw new Error('нет связи');
+    logCmd('→ set '+q.get('i')+' '+q.get('v'));
+    await bleWrite('set '+q.get('i')+' '+q.get('v'));
+    return {};
+  }
+  throw new Error('неизвестная команда');
+}
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');
+  clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),1700);}
+
+$$('.tab').forEach(b=>b.onclick=()=>{
+  $$('.tab').forEach(x=>x.classList.toggle('on',x===b));
+  $$('.page').forEach(p=>p.classList.toggle('on',p.id===b.dataset.t));
+});
+
+function buildParams(){
+  const box=$('#params');
+  if(!S.params.length){
+    box.innerHTML='<div class=card><span class=muted>Параметры не заданы. '+
+      'Пропиши адреса из SigmaStudio в include/params.h и перепрошей.</span></div>';
+    return;
+  }
+  box.innerHTML='';
+  // Группы по номеру в названии: «Бас 1» -> выход 1, «Микшер» -> общее.
+  const groupOf=p=>{const m=String(p.l).match(/(\d)\s*$/); return m?m[1]:'0';};
+  const groupTitle=g=>g==='1'?'Выход 1':(g==='2'?'Выход 2':'Общее');
+
+  // Ползунок параметра. Частоты и срезы — шаг 1 Гц, гейны — 0,1 дБ.
+  const mkRange=(p,i)=>{
+    const r=document.createElement('input');
+    r.type='range'; r.min=p.min; r.max=p.max; r.id='r'+i;
+    r.step=(p.k===4||p.k===6)?1:((p.k===0||p.k===5)?0.1:(p.max-p.min)/120);
+    r.value=p.v;
+    return r;
+  };
+
+  // Число + единица: поле с ручным вводом, синхронизированное с ползунком.
+  // after() — необязательный хук: обновить сводку (например, в Bass Boost).
+  const mkVal=(p,i,r,after)=>{
+    const vb=document.createElement('span'); vb.className='valbox';
+    const vv=document.createElement('input');
+    vv.className='num'; vv.id='v'+i; vv.type='text';
+    vv.inputMode='decimal'; vv.autocomplete='off'; vv.value=fmtN(p.v);
+    vb.appendChild(vv);
+    if(after) r._after=after;
+    if(p.u){
+      const un=document.createElement('span');
+      un.className='unit'; un.textContent=p.u; un.title='сброс к 0 дБ';
+      // тап по единице — точный 0 дБ (или значение по умолчанию)
+      un.onclick=()=>{ const d=(p.k===0)?0:p.d; r.value=d; vv.value=fmtN(d); send(i,d); if(after) after(); };
+      vb.appendChild(un);
+    }
+    r.oninput=()=>{
+      let v=+r.value;
+      if(p.k===0 && Math.abs(v)<0.6){ v=0; r.value=0; }   // прилипание к 0 дБ
+      vv.value=fmtN(v);
+      send(i,v);
+      if(after) after();
+    };
+    // Ручной ввод: Enter или уход из поля. Запятая тоже принимается.
+    const commit=()=>{
+      let t=parseFloat(String(vv.value).replace(',','.'));
+      if(!isFinite(t)){ vv.value=fmtN(+r.value); return; }   // мусор — вернуть как было
+      t=Math.min(p.max,Math.max(p.min,t));                  // clamp в диапазон
+      t=(p.k===4||p.k===6)?Math.round(t):(Math.round(t*10)/10);  // Гц — целые, дБ — 0,1
+      if(p.k===0 && Math.abs(t)<0.6) t=0;                   // прилипание к 0 дБ
+      vv.value=fmtN(t);
+      if(Math.abs(t-(+r.value))>1e-6){ r.value=t; send(i,t); }
+      if(after) after();
+    };
+    vv.onchange=commit;
+    vv.onblur=commit;
+    vv.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); vv.blur(); } };
+    return vb;
+  };
+
+  // Подпись в интерфейсе: номер канала (он есть в params.h) не показываем —
+  // канал и так виден по заголовку группы «Выход 1 / Выход 2».
+  const dispName=p=>(p.k===0||p.k===3||p.k===4)
+    ? p.l.replace(/\s*\d+\s*$/,'').trim() : p.l;
+
+  // Обычная строка параметра (подпись + значение, под ними ползунок).
+  const mkRow=(p,i)=>{
+    const d=document.createElement('div'); d.className='prow';
+    const t=document.createElement('div'); t.className='row';
+    t.innerHTML='<b>'+esc(dispName(p))+'</b>';
+    d.appendChild(t);
+
+    // Mute: выключатель. Галочка = тишина (в DSP 1.0 = звук, 0 = тишина)
+    if(p.k===3){
+      const st=document.createElement('span');
+      st.id='v'+i; st.className='val'+((p.v<0.5)?' off':''); st.textContent=(p.v<0.5)?'тишина':'звук';
+      t.appendChild(st);
+      const sw=document.createElement('label'); sw.className='sw';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.id='c'+i;
+      cb.checked=p.v<0.5;
+      cb.onchange=()=>{
+        st.textContent=cb.checked?'тишина':'звук';
+        st.classList.toggle('off',cb.checked);
+        send(i,cb.checked?0:1);
+      };
+      sw.appendChild(cb); sw.appendChild(document.createElement('i'));
+      t.appendChild(sw);
+      return d;
+    }
+
+    const r=mkRange(p,i);
+    t.appendChild(mkVal(p,i,r));
+    d.appendChild(r);
+    return d;
+  };
+
+  // Bass Boost: свёрнутая строка со сводкой, по тапу раскрывается двумя колонками.
+  const mkBass=(a,ia,b,ib)=>{
+    const d=document.createElement('div'); d.className='prow bb';
+    const t=document.createElement('div'); t.className='row bbhead';
+    t.innerHTML='<b>Bass Boost</b>';
+    const sum=document.createElement('span'); sum.className='bbsum';
+    const ar=document.createElement('span'); ar.className='bbarrow'; ar.textContent='▾';
+    t.appendChild(sum); t.appendChild(ar);
+    d.appendChild(t);
+
+    const grid=document.createElement('div'); grid.className='bbgrid';
+    const ref=[];
+    let upd=()=>{};
+    [[a,ia,'Подъём'],[b,ib,'Частота']].forEach(([p,i,cap])=>{
+      const col=document.createElement('div'); col.className='bbcol';
+      const top=document.createElement('div'); top.className='bbtop';
+      const c=document.createElement('span'); c.className='bbcap'; c.textContent=cap;
+      const r=mkRange(p,i);
+      const vb=mkVal(p,i,r,()=>upd());
+      ref.push(vb.querySelector('input.num'));
+      top.appendChild(c); top.appendChild(vb);
+      col.appendChild(top); col.appendChild(r);
+      grid.appendChild(col);
+    });
+    upd=()=>{
+      const g=+ref[0].value, f=Math.round(+ref[1].value);
+      sum.textContent=(g>0?'+':'')+fmtN(g)+' дБ · '+f+' Гц';
+    };
+    d.appendChild(grid);
+
+    if(bbOpen[ia]) d.classList.add('open');
+    t.onclick=()=>{ d.classList.toggle('open'); bbOpen[ia]=d.classList.contains('open'); };
+    upd();
+    return d;
+  };
+
+  // Порядок внутри группы: громкость → срез → Bass Boost → Mute.
+  const orderOf=p=>p.k===0?0:(p.k===4?1:((p.k===5||p.k===6)?2:(p.k===3?3:4)));
+  const groups=[];
+  S.params.forEach((p,i)=>{
+    const g=groupOf(p);
+    let grp=groups.find(x=>x.g===g);
+    if(!grp){ grp={g:g,items:[]}; groups.push(grp); }
+    grp.items.push(i);
+  });
+
+  groups.forEach(grp=>{
+    grp.items.sort((a,b)=>orderOf(S.params[a])-orderOf(S.params[b]) || a-b);
+    const sec=document.createElement('div'); sec.className='group';
+    const h=document.createElement('h2'); h.textContent=groupTitle(grp.g);
+    const list=document.createElement('div'); list.className='plist';
+    sec.appendChild(h); sec.appendChild(list); box.appendChild(sec);
+
+    for(let k=0;k<grp.items.length;k++){
+      const i=grp.items[k], p=S.params[i];
+      const j=grp.items[k+1], q=(j===undefined)?null:S.params[j];
+      if(p.k===5 && q && q.k===6){
+        list.appendChild(mkBass(p,i,q,j)); k++; continue;   // пара ушла в один блок
+      }
+      list.appendChild(mkRow(p,i));
+    }
+  });
+}
+
+// Отправка параметра: не больше одного запроса в полёте на параметр.
+// Пока ESP отвечает, промежуточные значения схлопываются в последнее —
+// иначе при движении ползунка очередь запросов тормозит всю страницу.
+async function pushParam(i,v){
+  if(inflight[i]){ queued[i]=v; return; }
+  inflight[i]=true;
+  try{ await api('/api/set?i='+i+'&v='+v); }catch(e){}
+  inflight[i]=false;
+  const n=queued[i];
+  if(n!==undefined){ delete queued[i]; pushParam(i,n); }
+}
+function send(i,v){
+  clearTimeout(timers[i]);
+  sent[i]={v:v,t:Date.now()};
+  timers[i]=setTimeout(()=>{ sent[i].t=Date.now(); pushParam(i,v); },60);
+}
+
+function buildSlots(){
+  const sl=$('#slots'); sl.innerHTML='';
+  if(!S.params.length) return;
+  for(let s=0;s<3;s++){
+    const row=document.createElement('div'); row.className='pslot';
+
+    const nm=document.createElement('input');
+    nm.type='text'; nm.className='pname'; nm.id='pn'+s; nm.maxLength=20;
+    nm.placeholder='Пресет '+(s+1); nm.autocomplete='off';
+    nm.value=(S.names&&S.names[s])||'';
+    const commit=async()=>{
+      const v=nm.value.trim();
+      if(v===((S.names&&S.names[s])||'')) return;
+      await api('/api/preset?slot='+s+'&act=rename&name='+encodeURIComponent(v));
+      S.names[s]=v; syncSlots(); toast('имя сохранено');
+    };
+    nm.onchange=commit;
+    nm.onblur=commit;
+    nm.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();nm.blur();}};
+
+    const load=document.createElement('button');
+    load.className='ghost'; load.textContent='Загрузить'; load.id='pl'+s;
+    load.onclick=()=>preset(s,'load');
+
+    const save=document.createElement('button');
+    save.textContent='Сохранить'; save.id='ps'+s;
+    save.onclick=()=>preset(s,'save');
+
+    row.appendChild(nm); row.appendChild(load); row.appendChild(save);
+    sl.appendChild(row);
+  }
+  syncSlots();
+}
+
+// Имена и активный слот обновляем, не мешая вводу.
+function syncSlots(){
+  const mask=(S&&S.saved)|0;
+  for(let s=0;s<3;s++){
+    const nm=$('#pn'+s); if(!nm) continue;
+    if(nm!==document.activeElement) nm.value=(S.names&&S.names[s])||'';
+    nm.classList.toggle('on',S.preset===s);
+    const lb=$('#pl'+s); if(lb) lb.disabled=!((mask>>s)&1);
+  }
+}
+
+function status(){
+  const on=bleOn(), s=S||{};
+  const p=$('#pill');
+  p.textContent=on?((ble.dev&&ble.dev.name)||'BLE'):'нет связи';
+  p.className='pill'+(on?' ok':' bad');
+  $('#dot-link').className='dot '+(on?'ok':'bad');
+  $('#dot-adau').className='dot '+(s.adau?'ok':'bad');
+
+  const name=$('#c-name'), st=$('#c-state'), btn=$('#c-btn');
+  if(name) name.textContent=on?((ble.dev&&ble.dev.name)||'ADAU-DSP'):'Не подключено';
+  if(st){ st.textContent=on?'подключено':'—'; st.className=on?'ok':'muted'; }
+  if(btn) btn.textContent=on?'Отключить':'Подключить';
+
+  const dev=$('#c-dev'); if(dev) dev.textContent=on?String((ble.dev&&ble.dev.id)||'—').slice(0,20):'—';
+  const v=$('#c-ver');  if(v) v.textContent=s.ver?'v'+s.ver:'—';
+  const a=$('#c-adau');
+  if(a) a.innerHTML=on?(s.adau?'<span class=ok>отвечает</span>':'<span class=bad>нет ответа</span>'):'—';
+
+  const da=$('#d-adau');
+  if(da) da.innerHTML=!on?'<span class=bad>нет связи</span>'
+    :(s.adau?'<span class=ok>отвечает</span>':'<span class=bad>нет ответа</span>');
+  const dl=$('#d-link'); if(dl) dl.innerHTML=on?'<span class=ok>BLE</span>':'<span class=bad>нет</span>';
+  const dp=$('#d-preset');
+  if(dp) dp.textContent=(s.preset<255)
+    ? (((s.names&&s.names[s.preset])||'').trim() || ('слот '+(s.preset+1)))
+    : 'вручную';
+
+  const sp=$('#s-preset');
+  if(sp) sp.textContent=(s.preset<255)
+    ? (((s.names&&s.names[s.preset])||'').trim() || ('слот '+(s.preset+1)))
+    : '—';
+}
+
+function syncParams(){
+  if(!S.params) return;
+  S.params.forEach((q,i)=>{
+    const el=$('#v'+i); if(!el) return;
+    if(q.k===3){
+      const cb=$('#c'+i);
+      if(cb && cb!==document.activeElement){
+        cb.checked=q.v<0.5;
+        el.textContent=(q.v<0.5)?'тишина':'звук';
+        el.classList.toggle('off',q.v<0.5);
+      }
+      return;
+    }
+    // Пока запрос в пути, сервер ещё отдаёт старое значение — не откатываем поле.
+    const pend=sent[i];
+    if(pend && Date.now()-pend.t<900 && Math.abs(pend.v-q.v)>0.05) return;
+    const r=$('#r'+i) || el.closest('.prow').querySelector('input[type=range]');
+    if(!r || r===document.activeElement || el===document.activeElement) return;
+    if(Math.abs(+r.value-q.v)>0.05){ r.value=q.v; el.value=fmtN(q.v); }
+    if(r._after) r._after();
+  });
+}
+
+// ------------------------------------------------------------ состояние
+
+function applyState(o){
+  if(!o || !o.params){ return; }
+  const el=$('#ver'); if(o.ver && el) el.textContent='v'+o.ver;
+
+  if(!S || !S.params){
+    S=o;
+    buildParams(); buildSlots();
+  }else{
+    S.ver=o.ver||S.ver; S.adau=o.adau;
+    S.preset=o.preset; S.saved=o.saved|0;
+    if(o.names) S.names=o.names;
+    o.params.forEach((q,i)=>{ if(S.params[i]) S.params[i].v=q.v; });
+  }
+  syncParams(); syncSlots(); status();
+}
+
+async function refresh(silent){
+  if(!bleOn()){ status(); return; }
+  try{ applyState(await ask('state')); }
+  catch(e){ if(!silent){ if(!bleOn()) status(); } }
+}
+
+async function preset(s,a){
+  if(!bleOn()){ toast('сначала подключись'); return; }
+  try{
+    const r=await ask('preset '+(s+1)+' '+a);
+    if(r && r.ok===false){ toast('слот пуст'); return; }
+    applyState(r);
+    toast(a==='save'?'сохранено':'загружено');
+  }catch(e){ toast('ошибка: '+e.message); }
+}
+
+// ------------------------------------------------------------ подключение
+
+async function attach(dev){
+  detach();
+  ble.dev=dev;
+  ble.buf=''; ble.dec=new TextDecoder('utf-8');
+  dev.addEventListener('gattserverdisconnected',onGone);
+
+  const server=await dev.gatt.connect();
+  const svc=await server.getPrimaryService(NUS_SVC);
+  ble.tx=await svc.getCharacteristic(NUS_TX);
+  ble.rx=await svc.getCharacteristic(NUS_RX);
+  await ble.tx.startNotifications();
+  ble.tx.addEventListener('characteristicvaluechanged',onChunk);
+
+  status();
+  logCmd('✓ подключено: '+(dev.name||dev.id));
+  try{ localStorage.setItem('adauDev',dev.id); }catch(e){}
+  await refresh(true);
+  blePing();
+}
+
+function detach(){
+  if(ble.tx){
+    try{ ble.tx.removeEventListener('characteristicvaluechanged',onChunk); }catch(e){}
+  }
+  ble.rx=null; ble.tx=null; ble.buf='';
+  pending.splice(0).forEach(w=>{ clearTimeout(w.timer); w.reject(new Error('связь потеряна')); });
+}
+
+function onGone(){
+  detach();
+  status();
+  toast('связь с платой потеряна');
+}
+
+async function bleConnect(){
+  if(!bleOk()){ toast('нужен Chrome на Android'); return; }
+  try{
+    const dev=await navigator.bluetooth.requestDevice({
+      filters:[{namePrefix:'ADAU'},{services:[NUS_SVC]}],
+      optionalServices:[NUS_SVC]
+    });
+    await attach(dev);
+    toast('подключено');
+  }catch(e){
+    if(e && (e.name==='NotFoundError'||e.name==='AbortError')) return;  // закрыли выбор
+    toast('не вышло: '+(e.message||e));
+  }
+}
+
+function bleToggle(){ if(bleOn()) bleDisconnect(); else bleConnect(); }
+
+function bleDisconnect(){
+  try{ if(ble.dev) ble.dev.gatt.disconnect(); }catch(e){}
+  detach(); status(); toast('отключено');
+}
+
+// Автоподключение к ранее разрешённому устройству (Chrome помнит выбор).
+async function autoBle(){
+  if(!navigator.bluetooth || !navigator.bluetooth.getDevices) return;
+  try{
+    const devs=await navigator.bluetooth.getDevices();
+    let id='';
+    try{ id=localStorage.getItem('adauDev')||''; }catch(e){}
+    const dev=devs.find(d=>d.id===id) || devs.find(d=>/ADAU/i.test(d.name||''));
+    if(dev) await attach(dev);
+  }catch(e){}
+}
+
+async function blePing(){
+  if(!bleOn()){ toast('сначала подключись'); return; }
+  const t0=performance.now();
+  try{
+    await ask('ping',3000);
+    const ms=Math.round(performance.now()-t0);
+    const el=$('#c-ping'); if(el) el.textContent=ms+' мс';
+  }catch(e){
+    const el=$('#c-ping'); if(el) el.textContent='—';
+    toast('плата не отвечает');
+  }
+}
+
+async function bleForget(){
+  bleDisconnect();
+  try{ if(ble.dev && ble.dev.forget) await ble.dev.forget(); }catch(e){}
+  try{ localStorage.removeItem('adauDev'); }catch(e){}
+  ble.dev=null; status(); toast('устройство забыто');
+}
+
+async function bleCmd(c){
+  if(!bleOn()){ toast('сначала подключись'); return; }
+  if(c==='defaults' && !confirm('Сбросить все регуляторы к заводским?')) return;
+  try{
+    const r=await ask(c);
+    if(r && r.params) applyState(r);
+    toast(c==='defaults'?'сброшено':'готово');
+  }catch(e){ toast('ошибка: '+e.message); }
+}
+
+// ------------------------------------------------------------ старт
+
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden && bleOn()) refresh(true);
+});
+
+if(!S) $('#params').innerHTML='<div class=card><b>Плата не подключена</b>'+
+  '<p class=muted>Открой вкладку <b>BLE</b> и нажми «Подключить».<br>'+
+  'Дальше пульт сам подтянет настройки.</p></div>';
+
+status();
+autoBle();
+
+// Офлайн-кэш (нужен только на HTTPS-хостинге; локально молча пропускаем).
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body></html>
