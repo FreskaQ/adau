@@ -1,5 +1,5 @@
 // Офлайн-кэш: пульт работает без интернета, связь с платой идёт по BLE.
-const CACHE = "adau-ble-v1";
+const CACHE = "adau-ble-v2";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -14,11 +14,16 @@ self.addEventListener("activate", e => {
   );
 });
 
-// Сначала сеть (чтобы обновления подхватывались), офлайн — из кэша.
+// HTML — всегда с проверкой у сервера (иначе браузер отдаёт свою копию
+// до 10 минут и новые версии не видны). Остальное — сначала сеть, потом кэш.
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
+
+  const html = e.request.mode === "navigate" ||
+               (e.request.destination === "document");
+
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, html ? { cache: "no-cache" } : undefined)
       .then(r => {
         const copy = r.clone();
         caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
