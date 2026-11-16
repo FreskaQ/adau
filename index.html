@@ -118,7 +118,7 @@ a{color:#5fb3ff;text-decoration:none}
  transition:width .18s}
 </style></head><body>
 
-<header><b>ADAU DSP <small class=ver id=ver>v2.4.1</small></b>
+<header><b>ADAU DSP <small class=ver id=ver>v2.4.2</small></b>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i><span id=pill class=pill>нет связи</span></span>
 </header>
 
@@ -215,9 +215,9 @@ a{color:#5fb3ff;text-decoration:none}
   <div class=card>
     <div class=row><b>Полосы</b><span class=muted id=l-adc>—</span></div>
     <div class=ledbars id=l-bars></div>
-    <div class=muted>16 полос 40 Гц … 5.4 кГц в дБ над калиброванным нулём.
-    При тишине все около нуля и ниже. Если бас горит без музыки — фон 50 Гц:
-    земля, длина провода, экран.</div>
+    <div class=muted>16 полос 40 Гц … 5.4 кГц: дБ над калиброванным нулём,
+    0…50 — рабочий диапазон. При тишине все около нуля. Если бас горит без
+    музыки — фон 50 Гц: земля, длина провода, экран.</div>
     <div class=btns><button class=ghost onclick=ledTest()>Тест R/G/B/W</button></div>
   </div>
 </section>
@@ -810,7 +810,8 @@ function drawBands(db){
   const box=$('#l-bars'); if(!box||!db) return;
   while(box.children.length<db.length) box.appendChild(document.createElement('i'));
   [...box.children].forEach((el,i)=>{
-    const v=Math.max(0,Math.min(1,((db[i]||-90)+50)/50));
+    // db — это дБ над калиброванным нулём: 0…50 = 0…100 %
+    const v=Math.max(0,Math.min(1,(db[i]||0)/50));
     el.style.height=Math.max(2,Math.round(v*86))+'px';
     el.classList.toggle('off',v<0.04);
   });
