@@ -118,7 +118,7 @@ a{color:#5fb3ff;text-decoration:none}
  transition:width .18s}
 </style></head><body>
 
-<header><b>ADAU DSP <small class=ver id=ver>v2.4.2</small></b>
+<header><b>ADAU DSP <small class=ver id=ver>v2.5.0</small></b>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i><span id=pill class=pill>нет связи</span></span>
 </header>
 
@@ -206,10 +206,14 @@ a{color:#5fb3ff;text-decoration:none}
     яркость всё равно следует за громкостью (медленно, 15 с). Выключи — будет
     постоянная яркость.</p>
     <div class=row><span class=muted>Нуль (шум)</span><b id=l-nz>—</b></div>
-    <div class=btns><button class=ghost onclick=ledCal()>Калибровать тишину</button></div>
+    <div class=btns>
+      <button class=ghost onclick=ledCal()>Калибровать тишину</button>
+      <button class=ghost onclick=ledCalReset()>Сброс</button>
+    </div>
     <p class=muted>Поставь музыку на паузу и нажми: плата 2 секунды слушает
-    тишину и запоминает уровень шума как нуль. После этого шум не светится, а
-    тихая музыка видна. Запоминается в плате, переживает перезагрузку.</p>
+    тишину, запоминает уровень шума и его спектр — «слепок» — и вычитает шум из
+    музыки. Гул, свист и шипение после этого не светятся, а тихие детали видно.
+    Запоминается в плате, переживает перезагрузку.</p>
   </div>
 
   <div class=card>
@@ -787,7 +791,8 @@ function syncLed(){
   const gl=$('#l-gn');
   if(gl) gl.textContent=(L.gn==null?6:L.gn)+' дБ';
   const nz=$('#l-nz');
-  if(nz) nz.textContent=(L.nz==null?'—':L.nz+' дБ') + (L.cal?' · замер…':'');
+  if(nz) nz.textContent=(L.nz==null?'—':L.nz+' дБ')
+    + (L.cal?' · замер…':(L.np?' · слепок есть':''));
   const md=$('#l-mode'); if(md) md.textContent=(['Спектр','Волна','Пульс','VU'][L.mode]||'—');
   $$('#l-modes button').forEach(b=>b.classList.toggle('on',+b.dataset.m===L.mode));
   const cn=$('#l-cnt');
@@ -830,12 +835,20 @@ function lightPoll(on){
 
 function ledTest(){ ledCmd('test').then(r=>{ if(r) toast('тест 3 с'); }); }
 
-// Калибровка нуля: плата 2 с слушает тишину и запоминает шум как нуль.
+// Калибровка нуля: плата 2 с слушает тишину, снимает слепок шума и запоминает.
 function ledCal(){
   ledCmd('cal').then(r=>{
     if(!r) return;
     toast('калибрую 2 с — тишина!');
     setTimeout(()=>ledCmd('state',true),2600);
+  });
+}
+
+// Сброс: нуль к −50 dBFS, слепок шума стирается.
+function ledCalReset(){
+  ledCmd('cal reset').then(r=>{
+    if(r) toast('калибровка сброшена');
+    setTimeout(()=>ledCmd('state',true),400);
   });
 }
 
