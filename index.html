@@ -118,7 +118,7 @@ a{color:#5fb3ff;text-decoration:none}
  transition:width .18s}
 </style></head><body>
 
-<header><b>ADAU DSP <small class=ver id=ver>v2.3.0</small></b>
+<header><b>ADAU DSP <small class=ver id=ver>v2.4.0</small></b>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i><span id=pill class=pill>нет связи</span></span>
 </header>
 
@@ -182,6 +182,11 @@ a{color:#5fb3ff;text-decoration:none}
     </div>
     <div class=row><span class=muted>Яркость</span><b id=l-br>—</b></div>
     <input type=range id=l-bright min=0 max=255 step=5 value=120>
+    <div class=row><span class=muted>Чувствительность</span><b id=l-gn>—</b></div>
+    <input type=range id=l-gain min=-12 max=30 step=2 value=6>
+    <p class=muted>Поднимает тихие места: +6 дБ по умолчанию. Если при малой
+    громкости лента почти не светится — тяни до +18…+30. Если наоборот,
+    светится в тишине от шума — уводи в минус.</p>
     <div class=row><span class=muted>Режим</span><b id=l-mode>—</b></div>
     <div class=seg id=l-modes>
       <button data-m=0>Спектр</button>
@@ -762,7 +767,7 @@ async function bleCmd(c){
 
 // ------------------------------------------------------------ подсветка
 
-let ledPoll=null, brTimer=0;
+let ledPoll=null, brTimer=0, gnTimer=0;
 
 function syncLed(){
   const L=S&&S.led; if(!L) return;
@@ -771,6 +776,10 @@ function syncLed(){
   const br=$('#l-bright');
   if(br && br!==document.activeElement) br.value=L.br;
   const bl=$('#l-br');   if(bl) bl.textContent=L.br+' / 255';
+  const gs=$('#l-gain');
+  if(gs && gs!==document.activeElement) gs.value=(L.gn==null?6:L.gn);
+  const gl=$('#l-gn');
+  if(gl) gl.textContent=(L.gn==null?6:L.gn)+' дБ';
   const md=$('#l-mode'); if(md) md.textContent=(['Спектр','Волна','Пульс','VU'][L.mode]||'—');
   $$('#l-modes button').forEach(b=>b.classList.toggle('on',+b.dataset.m===L.mode));
   const cn=$('#l-cnt');
@@ -837,6 +846,12 @@ $('#l-bright').oninput=e=>{
   const bl=$('#l-br'); if(bl) bl.textContent=v+' / 255';
   clearTimeout(brTimer);
   brTimer=setTimeout(()=>ledCmd('bright '+v,true),90);
+};
+$('#l-gain').oninput=e=>{
+  const v=+e.target.value;
+  const gl=$('#l-gn'); if(gl) gl.textContent=v+' дБ';
+  clearTimeout(gnTimer);
+  gnTimer=setTimeout(()=>ledCmd('gain '+v,true),120);
 };
 
 // ------------------------------------------------------------ OTA по BLE
