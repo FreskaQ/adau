@@ -24,6 +24,7 @@ nav{position:sticky;top:46px;z-index:19;display:flex;gap:3px;margin:0 14px 8px;p
 .tab{flex:1;padding:8px;border:0;border-radius:9px;background:transparent;color:#8b98ac;
  font-size:13.5px;font-weight:500;transition:.18s}
 .tab.on{background:#28344a;color:#eaf1ff}
+.tab[hidden]{display:none!important}
 section.page{padding:0 14px}
 .page{display:none}.page.on{display:block}
 .card{background:var(--card);border-radius:15px;padding:13px;margin:9px 0}
@@ -195,7 +196,7 @@ a{color:#5fb3ff;text-decoration:none}
 </style></head><body>
 
 <header>
- <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.26</small></div>
+ <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.27</small></div>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i></span>
  <button id=pill class="pill bad" onclick=bleToggle() title="Подключить или отключить">Подключить</button>
 </header>
@@ -207,7 +208,7 @@ a{color:#5fb3ff;text-decoration:none}
 
 <nav>
  <button class="tab on" data-t=main><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="18" r="2.2"/></svg></span>Пульт</button>
- <button class=tab data-t=light><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.5h6c0-1.1.3-1.9 1-2.5A6 6 0 0 0 12 3z"/></svg></span>Свет</button>
+ <button class=tab data-t=light id=tab-light><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.5h6c0-1.1.3-1.9 1-2.5A6 6 0 0 0 12 3z"/></svg></span>Свет</button>
  <button class=tab data-t=conn><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg></span>BLE</button>
  <button class=tab data-t=diag><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V5M4 19h16M8 15v-4M12 15V8M16 15v-6"/></svg></span>Диаг</button>
 </nav>
@@ -277,10 +278,9 @@ a{color:#5fb3ff;text-decoration:none}
       <button data-m=9>Смена</button>
       <button data-m=10>Радуга</button>
       <button data-m=11>Импульс</button>
-      <button data-m=12>JBL</button>
+      <button data-m=12>Мембрана</button>
       <button data-m=13>Комета</button>
       <button data-m=14>Змейка</button>
-      <button data-m=15>Змейка RGB</button>
     </div>
     <p class=hint id=l-mdesc>VU: два столбика от центра, зелёный → красный.</p>
   </div>
@@ -342,7 +342,41 @@ a{color:#5fb3ff;text-decoration:none}
       <div class=row><span class=muted>Спад</span><b id=l-fall>—</b></div>
       <input type=range id=l-fallv min=30 max=400 step=10 value=250>
       <p class=muted>Как быстро гаснет загоревшееся. 250 мс — мягко,
-      60–80 мс — резко, «как в колонках».</p>
+      60–80 мс — резко, «как в колонках». У «Змейки» это длина хвоста.</p>
+    </div>
+
+    <div class=lset data-p=turn>
+      <div class=row><span class=muted>Разворот на удар</span><b id=l-turn>—</b></div>
+      <input type=range id=l-turnv min=0 max=100 step=5 value=50>
+      <p class=muted>Шанс, что змейка на удар развернётся на месте — но только
+      после пробега в четверть ленты, чтобы не топталась в одной зоне.
+      0 — разворот только у краёв, 100 — каждый удар.</p>
+    </div>
+
+    <div class=lset data-p=rgb>
+      <div class=row><span class=muted>Цвет змейки</span><b id=l-rgb-l>оттенки</b></div>
+      <div class=seg id=l-rgb>
+        <button data-r=0>Оттенки</button>
+        <button data-r=1>RGB</button>
+      </div>
+      <p class=muted>«Оттенки» — змейка в оттенках одной палитры, которая
+      меняется раз в несколько ударов. «RGB» — цвет плывёт вдоль тела
+      радугой.</p>
+    </div>
+
+    <div class=lset data-p=reac>
+      <div class=row><span class=muted>Реакция на музыку</span><b id=l-reac>—</b></div>
+      <input type=range id=l-reacv min=0 max=100 step=5 value=60>
+      <p class=muted>Насколько громкость добавляет хода поверх темпа: 0 —
+      змейка идёт только от BPM, 100 — на тихом куске почти стоит, на плотном
+      летит.</p>
+    </div>
+
+    <div class=lset data-p=len>
+      <div class=row><span class=muted>Длина змейки</span><b id=l-len>—</b></div>
+      <input type=range id=l-lenv min=10 max=60 step=5 value=35>
+      <p class=muted>Сколько ленты занимает тело: 10 % — короткий штрих,
+      60 % — длинная змея. Хвост за головой всё равно тянется по «Спаду».</p>
     </div>
 
     <div class=lset data-p=punch>
@@ -813,6 +847,17 @@ function status(){
   p.textContent=on?((ble.dev&&ble.dev.name)||'BLE'):'Подключить';
   p.className='pill'+(on?' ok':' bad');
   const off=$('#off'); if(off) off.hidden=on;
+  // «Свет» без подключения не нужен: параметры всё равно не отправить, а
+  // ползунки показывали бы пустоту. Ушли с раздела — вернулись на «Пульт».
+  const tl=$('#tab-light'); if(tl) tl.hidden=!on;
+  if(!on){
+    const lp=$('#light');
+    if(lp&&lp.classList.contains('on')){
+      $$('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t==='main'));
+      $$('.page').forEach(p=>p.classList.toggle('on',p.id==='main'));
+      lightPoll(false);
+    }
+  }
   $('#dot-link').className='dot '+(on?'ok':'bad');
   $('#dot-adau').className='dot '+(s.adau?'ok':'bad');
 
@@ -1006,6 +1051,7 @@ async function bleCmd(c){
 
 let ledPoll=null, brTimer=0, gnTimer=0, tlTimer=0, bhTimer=0, softTimer=0;
 let bgTimer=0, spdTimer=0, flTimer=0, perTimer=0, hueTimer=0, fallTimer=0, punchTimer=0;
+let turnTimer=0, reacTimer=0, lenTimer=0;
 
 // Какие настройки есть у каждого режима (совпадает с тем, что реально
 // используется в render() прошивки). «Фон» — общий для всех, «Яркость»
@@ -1023,10 +1069,9 @@ const LSET={
   9:['spd'],               // смена цвета — скорость
   10:['spd'],              // радуга — скорость
   11:['fall','punch'],     // импульс — спад и порог удара
-  12:['fall','punch'],     // JBL — спад волны и порог удара
+  12:['fall','punch'],     // Мембрана — спад волны и порог удара
   13:['spd','fall'],       // комета — скорость бега и длина хвоста
-  14:['spd','fall'],       // змейка — скорость и длина хвоста
-  15:['spd','fall']        // змейка RGB — то же
+  14:['spd','fall','turn','rgb','reac','len']   // змейка — скорость, хвост, разворот, цвет, реакция, длина
 };
 
 const MDESC=[
@@ -1041,11 +1086,10 @@ const MDESC=[
   'Спектр: 16 полос от центра, выше — ярче.',
   'Смена цвета: плавный перелив всей ленты.',
   'Радуга: бегущая радуга без музыки.',
-  'Импульс: резкая реакция на музыку и удар низа, как у JBL.',
-  'JBL: две головки качают басом, заливка и сегменты повторяют музыку, на удар расходится волна, палитра меняется каждые 4 удара.',
+  'Импульс: резкая реакция на музыку и удар низа, как у концертных колонок.',
+  'Мембрана: две головки качают басом, заливка и сегменты повторяют музыку, на удар расходится волна, палитра меняется каждые 4 удара.',
   'Комета: головки перебегают ленту то слева, то справа, за каждой тянется хвост, на удар и пиках запусков больше.',
-  'Змейка: одна змейка с градиентом катается по ленте, на удар разворачивается и вспыхивает случайным цветом, палитра меняется раз в несколько ударов.',
-  'Змейка RGB: то же, но у каждой змейки свой цвет и вдоль тела переливается оттенок.'
+  'Змейка: одна змейка с градиентом идёт по ленте в темпе трека, на удар разворачивается и вспыхивает случайным цветом, палитра меняется раз в несколько ударов.'
 ];
 
 function applyModeUI(m){
@@ -1096,7 +1140,7 @@ function syncLed(){
   if(nz) nz.textContent=(L.nz==null?'—':L.nz+' дБ')
     + (L.cal?' · замер…':(L.calx?' · отменена':'')+(L.np?' · слепок есть':''));
   const cf=$('#l-calf-box'); if(cf) cf.hidden=!(L.calx?1:0);
-  const md=$('#l-mode'); if(md) md.textContent=(['VU','VU радуга','5 полос','3 полосы','1 полоса','Строб','Цвет','Бегущие','Спектр','Смена цвета','Радуга','Импульс','JBL','Комета','Змейка','Змейка RGB'][L.mode]||'—');
+  const md=$('#l-mode'); if(md) md.textContent=(['VU','VU радуга','5 полос','3 полосы','1 полоса','Строб','Цвет','Бегущие','Спектр','Смена цвета','Радуга','Импульс','Мембрана','Комета','Змейка'][L.mode]||'—');
   $$('#l-modes button').forEach(b=>b.classList.toggle('on',+b.dataset.m===L.mode));
   applyModeUI(L.mode);
   const bgv=$('#l-bgv');
@@ -1131,6 +1175,20 @@ function syncLed(){
   if(fav && fav!==document.activeElement) fav.value=(L.fall==null?250:L.fall);
   const fal=$('#l-fall');
   if(fal) fal.textContent=(L.fall==null?250:L.fall)+' мс';
+  const tuv=$('#l-turnv');
+  if(tuv && tuv!==document.activeElement) tuv.value=(L.turn==null?50:L.turn);
+  const tul=$('#l-turn');
+  if(tul) tul.textContent=(L.turn==null?50:L.turn)+' %';
+  $$('#l-rgb button').forEach(b=>b.classList.toggle('on',+b.dataset.r===(L.rgb==null?0:L.rgb)));
+  const rgl=$('#l-rgb-l'); if(rgl) rgl.textContent=L.rgb?'RGB':'оттенки';
+  const rcv=$('#l-reacv');
+  if(rcv && rcv!==document.activeElement) rcv.value=(L.reac==null?60:L.reac);
+  const rcl=$('#l-reac');
+  if(rcl) rcl.textContent=(L.reac==null?60:L.reac)+' %';
+  const lev=$('#l-lenv');
+  if(lev && lev!==document.activeElement) lev.value=(L.len==null?35:L.len);
+  const lel=$('#l-len');
+  if(lel) lel.textContent=(L.len==null?35:L.len)+' %';
   const puv=$('#l-punchv');
   if(puv && puv!==document.activeElement) puv.value=Math.round((L.punch==null?1.5:L.punch)*10);
   const pul=$('#l-punch');
@@ -1292,6 +1350,29 @@ $('#l-fallv').oninput=e=>{
   const b=$('#l-fall'); if(b) b.textContent=v+' мс';
   clearTimeout(fallTimer);
   fallTimer=setTimeout(()=>ledCmd('fall '+v,true),120);
+};
+$('#l-turnv').oninput=e=>{
+  const v=+e.target.value;
+  const b=$('#l-turn'); if(b) b.textContent=v+' %';
+  clearTimeout(turnTimer);
+  turnTimer=setTimeout(()=>ledCmd('turn '+v,true),120);
+};
+$$('#l-rgb button').forEach(b=>b.onclick=()=>{
+  $$('#l-rgb button').forEach(x=>x.classList.toggle('on',x===b));
+  const lb=$('#l-rgb-l'); if(lb) lb.textContent=b.textContent;
+  ledCmd('rgb '+b.dataset.r,true);
+});
+$('#l-reacv').oninput=e=>{
+  const v=+e.target.value;
+  const b=$('#l-reac'); if(b) b.textContent=v+' %';
+  clearTimeout(reacTimer);
+  reacTimer=setTimeout(()=>ledCmd('reac '+v,true),120);
+};
+$('#l-lenv').oninput=e=>{
+  const v=+e.target.value;
+  const b=$('#l-len'); if(b) b.textContent=v+' %';
+  clearTimeout(lenTimer);
+  lenTimer=setTimeout(()=>ledCmd('len '+v,true),120);
 };
 $('#l-punchv').oninput=e=>{
   const v=+e.target.value;
