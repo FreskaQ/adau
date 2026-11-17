@@ -196,7 +196,7 @@ a{color:#5fb3ff;text-decoration:none}
 </style></head><body>
 
 <header>
- <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.27</small></div>
+ <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.28</small></div>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i></span>
  <button id=pill class="pill bad" onclick=bleToggle() title="Подключить или отключить">Подключить</button>
 </header>
@@ -371,6 +371,14 @@ a{color:#5fb3ff;text-decoration:none}
       <p class=muted>Насколько громкость добавляет хода поверх темпа: 0 —
       змейка идёт только от BPM, 100 — на тихом куске почти стоит, на плотном
       летит.</p>
+    </div>
+
+    <div class=lset data-p=idle>
+      <div class=row><span class=muted>Скорость в тишине</span><b id=l-idle>—</b></div>
+      <input type=range id=l-idlev min=0 max=100 step=5 value=50>
+      <p class=muted>Нижний предел хода, когда музыки нет: 0 % — почти стоит,
+      50 % — половина обычной скорости, 100 % — не медленнее, чем под музыку.
+      Работает и при «Реакции» 100 %.</p>
     </div>
 
     <div class=lset data-p=len>
@@ -1053,7 +1061,7 @@ async function bleCmd(c){
 
 let ledPoll=null, brTimer=0, gnTimer=0, tlTimer=0, bhTimer=0, softTimer=0;
 let bgTimer=0, spdTimer=0, flTimer=0, perTimer=0, hueTimer=0, fallTimer=0, punchTimer=0;
-let turnTimer=0, reacTimer=0, lenTimer=0;
+let turnTimer=0, reacTimer=0, idleTimer=0, lenTimer=0;
 
 // Какие настройки есть у каждого режима (совпадает с тем, что реально
 // используется в render() прошивки). «Фон» — общий для всех, «Яркость»
@@ -1073,7 +1081,7 @@ const LSET={
   11:['fall','punch'],     // импульс — спад и порог удара
   12:['fall','punch'],     // Мембрана — спад волны и порог удара
   13:['spd','fall'],       // комета — скорость бега и длина хвоста
-  14:['spd','fall','turn','rgb','reac','len']   // змейка — скорость, хвост, разворот, цвет, реакция, длина
+  14:['spd','fall','turn','rgb','reac','idle','len']   // змейка — скорость, хвост, разворот, цвет, реакция, тишина, длина
 };
 
 const MDESC=[
@@ -1187,6 +1195,10 @@ function syncLed(){
   if(rcv && rcv!==document.activeElement) rcv.value=(L.reac==null?60:L.reac);
   const rcl=$('#l-reac');
   if(rcl) rcl.textContent=(L.reac==null?60:L.reac)+' %';
+  const idv=$('#l-idlev');
+  if(idv && idv!==document.activeElement) idv.value=(L.idle==null?50:L.idle);
+  const idl=$('#l-idle');
+  if(idl) idl.textContent=(L.idle==null?50:L.idle)+' %';
   const lev=$('#l-lenv');
   if(lev && lev!==document.activeElement) lev.value=(L.len==null?35:L.len);
   const lel=$('#l-len');
@@ -1369,6 +1381,12 @@ $('#l-reacv').oninput=e=>{
   const b=$('#l-reac'); if(b) b.textContent=v+' %';
   clearTimeout(reacTimer);
   reacTimer=setTimeout(()=>ledCmd('reac '+v,true),120);
+};
+$('#l-idlev').oninput=e=>{
+  const v=+e.target.value;
+  const b=$('#l-idle'); if(b) b.textContent=v+' %';
+  clearTimeout(idleTimer);
+  idleTimer=setTimeout(()=>ledCmd('idle '+v,true),120);
 };
 $('#l-lenv').oninput=e=>{
   const v=+e.target.value;
