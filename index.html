@@ -301,8 +301,9 @@ a{color:#5fb3ff;text-decoration:none}
     тишине, на удар бежит волна, цвет прыгает.</p>
   </div>
 
-  <div class=card>
-    <div class=row><b>Яркость и звук</b><span class=muted>для всех режимов</span></div>
+  <details class=card>
+    <summary><b>Яркость и звук</b><span class=muted>для всех режимов</span></summary>
+    <div class=body>
     <div class=row><span class=muted>Яркость</span><b id=l-br>—</b></div>
     <input type=range id=l-bright min=0 max=255 step=1 value=120>
     <div class=row><span class=muted>Чувствительность</span><b id=l-gn>—</b></div>
@@ -318,10 +319,12 @@ a{color:#5fb3ff;text-decoration:none}
       <p class=hint>+6 дБ по умолчанию. Если на малой громкости лента почти
       не светится — веди до +18…+30. Если светится в тишине от шума — в минус.</p>
     </details>
-  </div>
+    </div>
+  </details>
 
-  <div class=card>
-    <div class=row><b>Настройка режима</b><span class=muted>только выбранного</span></div>
+  <details class=card>
+    <summary><b>Настройка режима</b><span class=muted>только выбранного</span></summary>
+    <div class=body>
 
     <div class=lset data-p=spd>
       <div class=row><span class=muted>Скорость</span><b id=l-spd>—</b></div>
@@ -368,10 +371,12 @@ a{color:#5fb3ff;text-decoration:none}
 
     <p class=muted id=l-none hidden>У этого режима нет своих настроек — он
     целиком работает от звука.</p>
-  </div>
+    </div>
+  </details>
 
-  <div class=card>
-    <div class=row><b>Лента</b><span class=muted>фон, диоды, автоуровень</span></div>
+  <details class=card>
+    <summary><b>Лента</b><span class=muted>фон, диоды, автоуровень</span></summary>
+    <div class=body>
     <div class=row><span class=muted>Фон ленты</span><b id=l-bg>—</b></div>
     <input type=range id=l-bgv min=0 max=60 step=1 value=0>
     <p class=hint>Тусклая подложка незажжённых диодов — лента видна всегда,
@@ -423,7 +428,8 @@ a{color:#5fb3ff;text-decoration:none}
     <p class=hint>Каждая полоса подтягивается к самой громкой (до +12 дБ).
     Задавленная середина светится наравне с басом, тихие треки не сваливаются
     в один низ. Выключи, если нужна честная картина спектра.</p>
-  </div>
+    </div>
+  </details>
 
   <details class=card>
     <summary>Калибровка шума</summary>
