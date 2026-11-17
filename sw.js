@@ -1,5 +1,5 @@
 // Офлайн-кэш: пульт работает без интернета, связь с платой идёт по BLE.
-const CACHE = "adau-ble-v29";
+const CACHE = "adau-ble-v30";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
