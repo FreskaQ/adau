@@ -169,10 +169,6 @@ a{color:#5fb3ff;text-decoration:none}
     line-height:1.15;background:#212c3e;color:#c3d1e6;border:1px solid #2b3a52}
   .seg button.on{background:linear-gradient(180deg,#5a97ff,#3d78e6);color:#fff;
     border-color:#6aa2ff;box-shadow:0 4px 14px #4f8cff33}
-  .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-  .chip{margin:0;min-height:38px;padding:8px 3px;font-size:12px;background:#202b3c;
-    color:#cfe0f5;border:1px solid #2b3a52}
-  .chip:active{background:#2a3a52}
   .lset{padding:11px 0;border-top:1px solid #1e2836}
   .lset .row span{font-size:13px}
   details.card{padding:0;overflow:hidden}
@@ -199,7 +195,7 @@ a{color:#5fb3ff;text-decoration:none}
 </style></head><body>
 
 <header>
- <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.22</small></div>
+ <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.23</small></div>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i></span>
  <button id=pill class="pill bad" onclick=bleToggle() title="Подключить или отключить">Подключить</button>
 </header>
@@ -281,24 +277,9 @@ a{color:#5fb3ff;text-decoration:none}
       <button data-m=9>Смена</button>
       <button data-m=10>Радуга</button>
       <button data-m=11>Импульс</button>
-      <button data-m=12>Адаптив</button>
+      <button data-m=12>JBL</button>
     </div>
     <p class=hint id=l-mdesc>VU: два столбика от центра, зелёный → красный.</p>
-  </div>
-
-  <div class=card>
-    <div class=row><b>Быстрый настрой</b><span class=muted>один тап</span></div>
-    <div class=quick>
-      <button class=chip data-lp=jbl>JBL</button>
-      <button class=chip data-lp=soft>Мягко</button>
-      <button class=chip data-lp=spec>Спектр</button>
-      <button class=chip data-lp=party>Радуга</button>
-      <button class=chip data-lp=live>Адаптив</button>
-    </div>
-    <p class=hint><b>JBL</b> — резкий импульс и удар низа. <b>Мягко</b> — спектр
-    с плавным погасанием. <b>Спектр</b> — ровная шкала без вспышек.
-    <b>Радуга</b> — перелив без музыки. <b>Адаптив</b> — всегда живой: дышит в
-    тишине, на удар бежит волна, цвет прыгает.</p>
   </div>
 
   <details class=card>
@@ -1055,7 +1036,7 @@ const MDESC=[
   'Смена цвета: плавный перелив всей ленты.',
   'Радуга: бегущая радуга без музыки.',
   'Импульс: резкая реакция на музыку и удар низа, как у JBL.',
-  'Адаптив: всегда светится и дышит, на удар бежит волна от центра, цвет прыгает каждый удар.'
+  'JBL: две головки качают басом, заливка и сегменты повторяют музыку, на удар расходится волна, палитра меняется каждые 4 удара.'
 ];
 
 function applyModeUI(m){
@@ -1106,7 +1087,7 @@ function syncLed(){
   if(nz) nz.textContent=(L.nz==null?'—':L.nz+' дБ')
     + (L.cal?' · замер…':(L.calx?' · отменена':'')+(L.np?' · слепок есть':''));
   const cf=$('#l-calf-box'); if(cf) cf.hidden=!(L.calx?1:0);
-  const md=$('#l-mode'); if(md) md.textContent=(['VU','VU радуга','5 полос','3 полосы','1 полоса','Строб','Цвет','Бегущие','Спектр','Смена цвета','Радуга','Импульс','Адаптив'][L.mode]||'—');
+  const md=$('#l-mode'); if(md) md.textContent=(['VU','VU радуга','5 полос','3 полосы','1 полоса','Строб','Цвет','Бегущие','Спектр','Смена цвета','Радуга','Импульс','JBL'][L.mode]||'—');
   $$('#l-modes button').forEach(b=>b.classList.toggle('on',+b.dataset.m===L.mode));
   applyModeUI(L.mode);
   const bgv=$('#l-bgv');
@@ -1204,28 +1185,6 @@ function ledCalReset(){
     setTimeout(()=>ledCmd('state',true),400);
   });
 }
-
-// Быстрые пресеты светомузыки: несколько команд подряд. Ответ на каждую
-// ждём — иначе плата получит пачку и часть команд потеряется.
-const LPRESET={
-  jbl:  [['mode',11],['fall',70],['punch',1.3],['flash',1.3],['bg',0],['tilt',1.5]],
-  soft: [['mode',8],['fall',320],['flash',1.6],['punch',1.5],['bg',3],['tilt',2.5]],
-  spec: [['mode',8],['fall',160],['flash',1.25],['punch',1.5],['bg',0],['tilt',3.0]],
-  party:[['mode',10],['spd',2.0],['bg',6]],
-  live: [['mode',12],['fall',80],['punch',1.3],['flash',1.4],['bg',4],['tilt',2.5]]
-};
-let lpBusy=false;
-async function ledQuick(name){
-  const set=LPRESET[name]; if(!set) return;
-  if(!bleOn()){ toast('сначала подключись'); return; }
-  if(lpBusy) return;
-  lpBusy=true;
-  try{
-    for(const [k,v] of set) await ledCmd(k+' '+v,true);
-    toast('готово');
-  } finally { lpBusy=false; }
-}
-$$('.chip').forEach(b=>b.onclick=()=>ledQuick(b.dataset.lp));
 
 $$('#l-modes button').forEach(b=>b.onclick=()=>{
   const m=+b.dataset.m;
