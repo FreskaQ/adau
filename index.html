@@ -118,7 +118,7 @@ a{color:#5fb3ff;text-decoration:none}
  transition:width .18s}
 </style></head><body>
 
-<header><b>ADAU DSP <small class=ver id=ver>v2.9.0</small></b>
+<header><b>ADAU DSP <small class=ver id=ver>v2.9.1</small></b>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i><span id=pill class=pill>нет связи</span></span>
 </header>
 
@@ -203,18 +203,39 @@ a{color:#5fb3ff;text-decoration:none}
     </div>
     <div class=row><span class=muted>Фон ленты</span><b id=l-bg>—</b></div>
     <input type=range id=l-bgv min=0 max=60 step=5 value=0>
-    <div class=row><span class=muted>Скорость</span><b id=l-spd>—</b></div>
-    <input type=range id=l-spdv min=5 max=200 step=5 value=50>
-    <div class=row><span class=muted>Вспышки</span><b id=l-fl>—</b></div>
-    <input type=range id=l-flv min=0 max=30 step=1 value=13>
-    <div class=row><span class=muted>Период строба</span><b id=l-per>—</b></div>
-    <input type=range id=l-perv min=60 max=600 step=20 value=180>
-    <div class=row><span class=muted>Цвет подсветки</span><b id=l-hue>—</b></div>
-    <input type=range id=l-huev min=0 max=359 step=1 value=0>
-    <p class=muted>Фон — тусклая подложка незажжённых диодов (0 — выкл).
-    Скорость — для «VU радуги», «Бегущих», «Смены цвета» и «Радуги».
-    Вспышки — во сколько раз полоса должна превысить своё среднее, чтобы
-    вспыхнуть (0 — выкл, 1.3 — как у ColorMusic). Цвет — для режима «Цвет».</p>
+    <p class=muted>Тусклая подложка незажжённых диодов — лента видна всегда,
+    а не только на вспышках. Работает во всех режимах, 0 — выкл.</p>
+
+    <div class=lset data-p=spd>
+      <div class=row><span class=muted>Скорость</span><b id=l-spd>—</b></div>
+      <input type=range id=l-spdv min=5 max=200 step=5 value=50>
+      <p class=muted>Быстрота вращения радуги и бега волн: 1× — спокойно,
+      4× — быстро. Есть только у режимов с движением.</p>
+    </div>
+
+    <div class=lset data-p=fl>
+      <div class=row><span class=muted>Порог вспышки</span><b id=l-fl>—</b></div>
+      <input type=range id=l-flv min=0 max=30 step=1 value=13>
+      <p class=muted>Во сколько раз полоса должна превысить своё среднее,
+      чтобы блок вспыхнул. 0 — вспышки выкл, 1.2…1.5 — как у ColorMusic.</p>
+    </div>
+
+    <div class=lset data-p=per>
+      <div class=row><span class=muted>Период строба</span><b id=l-per>—</b></div>
+      <input type=range id=l-perv min=60 max=600 step=20 value=180>
+      <p class=muted>Промежуток между вспышками: 400–600 мс — спокойно,
+      100–150 мс — под быстрый бит.</p>
+    </div>
+
+    <div class=lset data-p=hue>
+      <div class=row><span class=muted>Цвет подсветки</span><b id=l-hue>—</b></div>
+      <input type=range id=l-huev min=0 max=359 step=1 value=0>
+      <p class=muted>0° — красный, 60° — жёлтый, 120° — зелёный,
+      240° — синий, 300° — фиолетовый.</p>
+    </div>
+
+    <p class=muted id=l-none hidden>У этого режима нет своих настроек — он
+    целиком работает от звука.</p>
     <div class=row><span class=muted>Диодов в ленте</span>
       <span class=valbox><input class=num id=l-cnt type=number min=8 max=300 step=1
         inputmode=numeric enterkeyhint=done autocomplete=off placeholder=60><span class=unit>шт</span></span>
@@ -676,7 +697,7 @@ function applyState(o){
     if(o.led) S.led=o.led;
     o.params.forEach((q,i)=>{ if(S.params[i]) S.params[i].v=q.v; });
   }
-  syncParams(); syncSlots(); status(); syncLed();
+  syncParams(); syncSlots(); status(); syncLed(); applyModeUI(-1);
 }
 
 async function refresh(silent){
@@ -802,6 +823,29 @@ async function bleCmd(c){
 let ledPoll=null, brTimer=0, gnTimer=0;
 let bgTimer=0, spdTimer=0, flTimer=0, perTimer=0, hueTimer=0;
 
+// Какие настройки есть у каждого режима (совпадает с тем, что реально
+// используется в render() прошивки). «Фон» — общий для всех, «Яркость»
+// и «Чувствительность» тоже, поэтому они вне этого списка.
+const LSET={
+  0:[],                    // VU — только звук
+  1:['spd'],               // VU радуга — скорость вращения
+  2:['fl'],                // 5 полос — порог вспышки блоков
+  3:['fl'],                // 3 полосы
+  4:['fl'],                // 1 полоса
+  5:['per'],               // строб — период
+  6:['hue'],               // цвет
+  7:['fl','spd'],          // бегущие — порог и скорость бега
+  8:['fl'],                // спектр — подчёркивание пиков
+  9:['spd'],               // смена цвета — скорость
+  10:['spd']               // радуга — скорость
+};
+
+function applyModeUI(m){
+  const keys=LSET[m]||[];
+  $$('.lset').forEach(el=>{ el.hidden = keys.indexOf(el.dataset.p)<0; });
+  const none=$('#l-none'); if(none) none.hidden = (m!==0);
+}
+
 function syncLed(){
   const L=S&&S.led; if(!L) return;
   const on=$('#l-on');   if(on) on.checked=!!L.on;
@@ -818,6 +862,7 @@ function syncLed(){
     + (L.cal?' · замер…':(L.np?' · слепок есть':''));
   const md=$('#l-mode'); if(md) md.textContent=(['VU','VU радуга','5 полос','3 полосы','1 полоса','Строб','Цвет','Бегущие','Спектр','Смена цвета','Радуга'][L.mode]||'—');
   $$('#l-modes button').forEach(b=>b.classList.toggle('on',+b.dataset.m===L.mode));
+  applyModeUI(L.mode);
   const bgv=$('#l-bgv');
   if(bgv && bgv!==document.activeElement) bgv.value=(L.bg==null?0:L.bg);
   const bgl=$('#l-bg');
@@ -895,7 +940,12 @@ function ledCalReset(){
   });
 }
 
-$$('#l-modes button').forEach(b=>b.onclick=()=>ledCmd('mode '+b.dataset.m));
+$$('#l-modes button').forEach(b=>b.onclick=()=>{
+  const m=+b.dataset.m;
+  $$('#l-modes button').forEach(x=>x.classList.toggle('on',x===b));
+  applyModeUI(m);
+  ledCmd('mode '+m);
+});
 // Число диодов: только цифры, 8…300. Применяем по Enter или на blur,
 // чтобы не дёргать пересчёт развёртки на каждой цифре.
 function ledCountCommit(){
