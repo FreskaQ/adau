@@ -207,13 +207,13 @@ a{color:#5fb3ff;text-decoration:none}
 </div>
 
 <nav>
- <button class="tab on" data-t=main><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="18" r="2.2"/></svg></span>Пульт</button>
- <button class=tab data-t=light id=tab-light><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.5h6c0-1.1.3-1.9 1-2.5A6 6 0 0 0 12 3z"/></svg></span>Свет</button>
- <button class=tab data-t=conn><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg></span>BLE</button>
+ <button class=tab data-t=main id=tab-main hidden><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="18" r="2.2"/></svg></span>Пульт</button>
+ <button class=tab data-t=light id=tab-light hidden><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.5h6c0-1.1.3-1.9 1-2.5A6 6 0 0 0 12 3z"/></svg></span>Свет</button>
+ <button class="tab on" data-t=conn><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg></span>BLE</button>
  <button class=tab data-t=diag><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V5M4 19h16M8 15v-4M12 15V8M16 15v-6"/></svg></span>Диаг</button>
 </nav>
 
-<section id=main class="page on">
+<section id=main class=page>
   <div id=params></div>
   <div class=card>
     <div class=row><b>Пресеты</b><span class=muted id=s-preset></span></div>
@@ -221,7 +221,7 @@ a{color:#5fb3ff;text-decoration:none}
   </div>
 </section>
 
-<section id=conn class=page>
+<section id=conn class="page on">
   <div class=card>
     <div class=row><b id=c-name>Не подключено</b><b id=c-state class=muted>—</b></div>
     <button id=c-btn onclick=bleToggle()>Подключить</button>
@@ -612,12 +612,14 @@ async function api(u){
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');
   clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),1700);}
 
-$$('.tab').forEach(b=>b.onclick=()=>{
-  $$('.tab').forEach(x=>x.classList.toggle('on',x===b));
-  $$('.page').forEach(p=>p.classList.toggle('on',p.id===b.dataset.t));
+function showTab(id){
+  $$('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t===id));
+  $$('.page').forEach(p=>p.classList.toggle('on',p.id===id));
   window.scrollTo(0,0);
-  lightPoll(b.dataset.t==='light');
-});
+  lightPoll(id==='light');
+}
+
+$$('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 
 function buildParams(){
   const box=$('#params');
@@ -848,16 +850,14 @@ function status(){
   p.textContent=on?((ble.dev&&ble.dev.name)||'BLE'):'Подключить';
   p.className='pill'+(on?' ok':' bad');
   const off=$('#off'); if(off) off.hidden=on;
-  // «Свет» без подключения не нужен: параметры всё равно не отправить, а
-  // ползунки показывали бы пустоту. Ушли с раздела — вернулись на «Пульт».
+  // Без подключения «Пульт» и «Свет» не нужны: отправлять команды некуда, а
+  // ползунки показывали бы пустоту. Остаются BLE и «Диаг»; если пользователь
+  // стоял на скрытом разделе — переводим на BLE.
+  const tm=$('#tab-main');  if(tm) tm.hidden=!on;
   const tl=$('#tab-light'); if(tl) tl.hidden=!on;
   if(!on){
-    const lp=$('#light');
-    if(lp&&lp.classList.contains('on')){
-      $$('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t==='main'));
-      $$('.page').forEach(p=>p.classList.toggle('on',p.id==='main'));
-      lightPoll(false);
-    }
+    const cur=$$('.page').find(x=>x.classList.contains('on'));
+    if(cur && (cur.id==='main' || cur.id==='light')) showTab('conn');
   }
   $('#dot-link').className='dot '+(on?'ok':'bad');
   $('#dot-adau').className='dot '+(s.adau?'ok':'bad');
@@ -964,6 +964,7 @@ async function attach(dev){
   ble.tx.addEventListener('characteristicvaluechanged',onChunk);
 
   status();
+  if($('#conn') && $('#conn').classList.contains('on')) showTab('main');
   logCmd('✓ подключено: '+(dev.name||dev.id));
   try{ localStorage.setItem('adauDev',dev.id); }catch(e){}
   await refresh(true);
