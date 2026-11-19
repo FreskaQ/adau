@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang=ru><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1">
 <meta name=theme-color content="#12161d">
@@ -196,7 +196,7 @@ a{color:#5fb3ff;text-decoration:none}
 </style></head><body>
 
 <header>
- <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.30</small></div>
+ <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.31</small></div>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i></span>
  <button id=pill class="pill bad" onclick=bleToggle() title="Подключить или отключить">Подключить</button>
 </header>
@@ -281,6 +281,7 @@ a{color:#5fb3ff;text-decoration:none}
       <button data-m=12>Мембрана</button>
       <button data-m=13>Комета</button>
       <button data-m=14>Змейка</button>
+      <button data-m=15>Диагностика</button>
     </div>
     <p class=hint id=l-mdesc>VU: два столбика от центра, зелёный → красный.</p>
   </div>
@@ -292,12 +293,12 @@ a{color:#5fb3ff;text-decoration:none}
     <input type=range id=l-bright min=0 max=255 step=1 value=120>
     <div class=row><span class=muted>Чувствительность</span><b id=l-gn>—</b></div>
     <input type=range id=l-gain min=-24 max=30 step=1 value=6>
-    <div class=row><span class=muted>Наклон спектра</span><b id=l-tilt>1.2 дБ/окт</b></div>
-    <input type=range id=l-tiltv min=0 max=60 step=5 value=12>
-    <p class=hint>Низ — главный источник движения, поэтому наклон мягкий:
-    <b>1.2 дБ/окт</b> вместо прежних 2.5. Полосы 40–120 Гц дополнительно
-    получают приоритет в прошивке. <b>0</b> — без коррекции, <b>4–6</b> —
-    если хочется подчеркнуть верх.</p>
+    <div class=row><span class=muted>Наклон спектра</span><b id=l-tilt>2.5 дБ/окт</b></div>
+    <input type=range id=l-tiltv min=0 max=60 step=5 value=25>
+    <p class=hint>Низы в музыке на 20 дБ громче верхов, поэтому спектр
+    выравнивается наклоном <b>2.5 дБ/окт</b>: бас ослабляется, верх
+    подтягивается, полосы светятся ровнее. <b>0</b> — без коррекции,
+    <b>4–6</b> — если хочется подчеркнуть верх.</p>
     <details class=adv>
       <summary>Как подобрать под громкость</summary>
       <p class=hint>+6 дБ по умолчанию. Если на малой громкости лента почти
@@ -1110,7 +1111,8 @@ const LSET={
   11:['fall','punch'],     // импульс — спад и порог удара
   12:['fall','punch'],     // Мембрана — спад волны и порог удара
   13:['spd','fall'],       // комета — скорость бега и длина хвоста
-  14:['spd','fall','turn','rgb','reac','idle','len','sn','spl','splk']   // змейка — скорость, хвост, разворот, цвет, реакция, тишина, длина, число змеек, разрыв, порог разрыва
+  14:['spd','fall','turn','rgb','reac','idle','len','sn','spl','splk'],  // змейка — скорость, хвост, разворот, цвет, реакция, тишина, длина, число змеек, разрыв, порог разрыва
+  15:[]                    // диагностика — настроек нет
 };
 
 const MDESC=[
@@ -1128,7 +1130,8 @@ const MDESC=[
   'Импульс: резкая реакция на музыку и удар низа, как у концертных колонок.',
   'Мембрана: две головки качают басом, заливка и сегменты повторяют музыку, на удар расходится волна, палитра меняется каждые 4 удара.',
   'Комета: головки перебегают ленту то слева, то справа, за каждой тянется хвост, на удар и пиках запусков больше.',
-  'Змейка: змейки с градиентом идут по ленте в темпе трека, на удар разворачиваются и вспыхивают случайным цветом, палитра меняется раз в несколько ударов. На бочку змейка умеет рваться на две половинки.'
+  'Змейка: змейки с градиентом идут по ленте в темпе трека, на удар разворачиваются и вспыхивают случайным цветом, палитра меняется раз в несколько ударов. На бочку змейка умеет рваться на две половинки.',
+  'Диагностика: первый диод вспыхивает на засчитанный удар, левая половина — уровень низа (красный), правая — середины (зелёный). На бочке красный без зелёного, на голосе зелёный наравне с красным.'
 ];
 
 function applyModeUI(m){
@@ -1168,9 +1171,9 @@ function syncLed(){
   const gl=$('#l-gn');
   if(gl) gl.textContent=(L.gn==null?6:L.gn)+' дБ';
   const tv=$('#l-tiltv');
-  if(tv && tv!==document.activeElement) tv.value=Math.round((L.tilt==null?1.2:L.tilt)*10);
+  if(tv && tv!==document.activeElement) tv.value=Math.round((L.tilt==null?2.5:L.tilt)*10);
   const tl2=$('#l-tilt');
-  if(tl2){ const t=(L.tilt==null?1.2:L.tilt); tl2.textContent=t.toFixed(1)+' дБ/окт'+(t?'':' · выкл'); }
+  if(tl2){ const t=(L.tilt==null?2.5:L.tilt); tl2.textContent=t.toFixed(1)+' дБ/окт'+(t?'':' · выкл'); }
   const AS=['Плавно','Обычно','Живо'];
   const asl=$('#l-agcs-l');
   if(asl) asl.textContent=AS[L.agcs==null?1:L.agcs]||'Обычно';
@@ -1179,7 +1182,7 @@ function syncLed(){
   if(nz) nz.textContent=(L.nz==null?'—':L.nz+' дБ')
     + (L.cal?' · замер…':(L.calx?' · отменена':'')+(L.np?' · слепок есть':''));
   const cf=$('#l-calf-box'); if(cf) cf.hidden=!(L.calx?1:0);
-  const md=$('#l-mode'); if(md) md.textContent=(['VU','VU радуга','5 полос','3 полосы','1 полоса','Строб','Цвет','Бегущие','Спектр','Смена цвета','Радуга','Импульс','Мембрана','Комета','Змейка'][L.mode]||'—');
+  const md=$('#l-mode'); if(md) md.textContent=(['VU','VU радуга','5 полос','3 полосы','1 полоса','Строб','Цвет','Бегущие','Спектр','Смена цвета','Радуга','Импульс','Мембрана','Комета','Змейка','Диагностика'][L.mode]||'—');
   $$('#l-modes button').forEach(b=>b.classList.toggle('on',+b.dataset.m===L.mode));
   applyModeUI(L.mode);
   const bgv=$('#l-bgv');
