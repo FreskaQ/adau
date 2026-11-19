@@ -196,7 +196,7 @@ a{color:#5fb3ff;text-decoration:none}
 </style></head><body>
 
 <header>
- <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.28</small></div>
+ <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.30</small></div>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i></span>
  <button id=pill class="pill bad" onclick=bleToggle() title="Подключить или отключить">Подключить</button>
 </header>
@@ -292,12 +292,12 @@ a{color:#5fb3ff;text-decoration:none}
     <input type=range id=l-bright min=0 max=255 step=1 value=120>
     <div class=row><span class=muted>Чувствительность</span><b id=l-gn>—</b></div>
     <input type=range id=l-gain min=-24 max=30 step=1 value=6>
-    <div class=row><span class=muted>Наклон спектра</span><b id=l-tilt>2.5 дБ/окт</b></div>
-    <input type=range id=l-tiltv min=0 max=60 step=5 value=25>
-    <p class=hint>Низ всегда громче верха, поэтому «Спектр» и полосовые
-    режимы выглядят как залитый бас. Наклон <b>2.5 дБ/окт</b> выравнивает
-    полосы, <b>0</b> — без коррекции, <b>5–6</b> — если верха всё ещё
-    теряются.</p>
+    <div class=row><span class=muted>Наклон спектра</span><b id=l-tilt>1.2 дБ/окт</b></div>
+    <input type=range id=l-tiltv min=0 max=60 step=5 value=12>
+    <p class=hint>Низ — главный источник движения, поэтому наклон мягкий:
+    <b>1.2 дБ/окт</b> вместо прежних 2.5. Полосы 40–120 Гц дополнительно
+    получают приоритет в прошивке. <b>0</b> — без коррекции, <b>4–6</b> —
+    если хочется подчеркнуть верх.</p>
     <details class=adv>
       <summary>Как подобрать под громкость</summary>
       <p class=hint>+6 дБ по умолчанию. Если на малой громкости лента почти
@@ -386,6 +386,34 @@ a{color:#5fb3ff;text-decoration:none}
       <input type=range id=l-lenv min=10 max=60 step=5 value=35>
       <p class=muted>Сколько ленты занимает тело: 10 % — короткий штрих,
       60 % — длинная змея. Хвост за головой всё равно тянется по «Спаду».</p>
+    </div>
+
+    <div class=lset data-p=sn>
+      <div class=row><span class=muted>Змеек на ленте</span><b id=l-sn>—</b></div>
+      <input type=range id=l-snv min=1 max=4 step=1 value=1>
+      <p class=muted>Сколько змеек гуляет одновременно: 1 — одна на всю ленту,
+      2–4 — стая. Вместе они занимают не больше 85 % ленты, поэтому у каждой
+      тело короче, чем по ползунку «Длина».</p>
+    </div>
+
+    <div class=lset data-p=spl>
+      <div class=row><span class=muted>Разрыв на бочку</span><b id=l-spl-l>вкл</b></div>
+      <div class=seg id=l-spl>
+        <button data-s=0>Выкл</button>
+        <button data-s=1>Вкл</button>
+      </div>
+      <p class=muted>На сильном ударе низа — там, где бочка, — змейка рвётся
+      на две половинки: они разлетаются в разные стороны и сходятся обратно.
+      Снейр и хэт её не рвут, они выше по спектру.</p>
+    </div>
+
+    <div class=lset data-p=splk>
+      <div class=row><span class=muted>Порог разрыва</span><b id=l-splk>—</b></div>
+      <input type=range id=l-splkv min=40 max=80 step=5 value=50>
+      <p class=muted>Насколько сильной должна быть бочка: 40 % — рвётся на
+      каждом ударе, 50 % — примерно через удар, 65–80 % — только самые жирные
+      акценты и дропы. На сведённых треках сила удара живёт в районе 46–58 %,
+      поэтому выше 80 поднимать смысла нет.</p>
     </div>
 
     <div class=lset data-p=punch>
@@ -1062,6 +1090,7 @@ async function bleCmd(c){
 let ledPoll=null, brTimer=0, gnTimer=0, tlTimer=0, bhTimer=0, softTimer=0;
 let bgTimer=0, spdTimer=0, flTimer=0, perTimer=0, hueTimer=0, fallTimer=0, punchTimer=0;
 let turnTimer=0, reacTimer=0, idleTimer=0, lenTimer=0;
+let snTimer=0, splThrTimer=0;
 
 // Какие настройки есть у каждого режима (совпадает с тем, что реально
 // используется в render() прошивки). «Фон» — общий для всех, «Яркость»
@@ -1081,7 +1110,7 @@ const LSET={
   11:['fall','punch'],     // импульс — спад и порог удара
   12:['fall','punch'],     // Мембрана — спад волны и порог удара
   13:['spd','fall'],       // комета — скорость бега и длина хвоста
-  14:['spd','fall','turn','rgb','reac','idle','len']   // змейка — скорость, хвост, разворот, цвет, реакция, тишина, длина
+  14:['spd','fall','turn','rgb','reac','idle','len','sn','spl','splk']   // змейка — скорость, хвост, разворот, цвет, реакция, тишина, длина, число змеек, разрыв, порог разрыва
 };
 
 const MDESC=[
@@ -1099,7 +1128,7 @@ const MDESC=[
   'Импульс: резкая реакция на музыку и удар низа, как у концертных колонок.',
   'Мембрана: две головки качают басом, заливка и сегменты повторяют музыку, на удар расходится волна, палитра меняется каждые 4 удара.',
   'Комета: головки перебегают ленту то слева, то справа, за каждой тянется хвост, на удар и пиках запусков больше.',
-  'Змейка: одна змейка с градиентом идёт по ленте в темпе трека, на удар разворачивается и вспыхивает случайным цветом, палитра меняется раз в несколько ударов.'
+  'Змейка: змейки с градиентом идут по ленте в темпе трека, на удар разворачиваются и вспыхивают случайным цветом, палитра меняется раз в несколько ударов. На бочку змейка умеет рваться на две половинки.'
 ];
 
 function applyModeUI(m){
@@ -1139,9 +1168,9 @@ function syncLed(){
   const gl=$('#l-gn');
   if(gl) gl.textContent=(L.gn==null?6:L.gn)+' дБ';
   const tv=$('#l-tiltv');
-  if(tv && tv!==document.activeElement) tv.value=Math.round((L.tilt==null?2.5:L.tilt)*10);
+  if(tv && tv!==document.activeElement) tv.value=Math.round((L.tilt==null?1.2:L.tilt)*10);
   const tl2=$('#l-tilt');
-  if(tl2){ const t=(L.tilt==null?2.5:L.tilt); tl2.textContent=t.toFixed(1)+' дБ/окт'+(t?'':' · выкл'); }
+  if(tl2){ const t=(L.tilt==null?1.2:L.tilt); tl2.textContent=t.toFixed(1)+' дБ/окт'+(t?'':' · выкл'); }
   const AS=['Плавно','Обычно','Живо'];
   const asl=$('#l-agcs-l');
   if(asl) asl.textContent=AS[L.agcs==null?1:L.agcs]||'Обычно';
@@ -1203,6 +1232,16 @@ function syncLed(){
   if(lev && lev!==document.activeElement) lev.value=(L.len==null?35:L.len);
   const lel=$('#l-len');
   if(lel) lel.textContent=(L.len==null?35:L.len)+' %';
+  const snv=$('#l-snv');
+  if(snv && snv!==document.activeElement) snv.value=(L.snakes==null?1:L.snakes);
+  const snl=$('#l-sn');
+  if(snl) snl.textContent=(L.snakes==null?1:L.snakes)+' шт.';
+  $$('#l-spl button').forEach(b=>b.classList.toggle('on',+b.dataset.s===(L.split==null?1:L.split)));
+  const spll=$('#l-spl-l'); if(spll) spll.textContent=(L.split==null?1:L.split)?'вкл':'выкл';
+  const spkv=$('#l-splkv');
+  if(spkv && spkv!==document.activeElement) spkv.value=(L.splthr==null?50:L.splthr);
+  const spkl=$('#l-splk');
+  if(spkl) spkl.textContent=(L.splthr==null?50:L.splthr)+' %';
   const puv=$('#l-punchv');
   if(puv && puv!==document.activeElement) puv.value=Math.round((L.punch==null?1.5:L.punch)*10);
   const pul=$('#l-punch');
@@ -1393,6 +1432,23 @@ $('#l-lenv').oninput=e=>{
   const b=$('#l-len'); if(b) b.textContent=v+' %';
   clearTimeout(lenTimer);
   lenTimer=setTimeout(()=>ledCmd('len '+v,true),120);
+};
+$('#l-snv').oninput=e=>{
+  const v=+e.target.value;
+  const b=$('#l-sn'); if(b) b.textContent=v+' шт.';
+  clearTimeout(snTimer);
+  snTimer=setTimeout(()=>ledCmd('snakes '+v,true),140);
+};
+$$('#l-spl button').forEach(b=>b.onclick=()=>{
+  $$('#l-spl button').forEach(x=>x.classList.toggle('on',x===b));
+  const lb=$('#l-spl-l'); if(lb) lb.textContent=(+b.dataset.s)?'вкл':'выкл';
+  ledCmd('split '+b.dataset.s,true);
+});
+$('#l-splkv').oninput=e=>{
+  const v=+e.target.value;
+  const b=$('#l-splk'); if(b) b.textContent=v+' %';
+  clearTimeout(splThrTimer);
+  splThrTimer=setTimeout(()=>ledCmd('splthr '+v,true),140);
 };
 $('#l-punchv').oninput=e=>{
   const v=+e.target.value;
