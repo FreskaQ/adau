@@ -196,7 +196,7 @@ a{color:#5fb3ff;text-decoration:none}
 </style></head><body>
 
 <header>
- <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.33</small></div>
+ <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.34</small></div>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i></span>
  <button id=pill class="pill bad" onclick=bleToggle() title="Подключить или отключить">Подключить</button>
 </header>
@@ -290,27 +290,13 @@ a{color:#5fb3ff;text-decoration:none}
     <div class=body>
     <div class=row><span class=muted>Яркость</span><b id=l-br>—</b></div>
     <input type=range id=l-bright min=0 max=255 step=1 value=120>
-    <div class=row><span class=muted>Чувствительность</span><b id=l-gn>—</b></div>
-    <input type=range id=l-gain min=-24 max=30 step=1 value=6>
-    <div class=row><span class=muted>Наклон спектра</span><b id=l-tilt>2.5 дБ/окт</b></div>
-    <input type=range id=l-tiltv min=0 max=60 step=5 value=25>
-    <p class=hint>Низы в музыке на 20 дБ громче верхов, поэтому спектр
-    выравнивается наклоном <b>2.5 дБ/окт</b>: бас ослабляется, верх
-    подтягивается, полосы светятся ровнее. <b>0</b> — без коррекции,
-    <b>4–6</b> — если хочется подчеркнуть верх.</p>
-    <details class=adv>
-      <summary>Как подобрать под громкость</summary>
-      <p class=hint>+6 дБ по умолчанию. Если на малой громкости лента почти
-      не светится — веди до +18…+30. Если светится в тишине от шума — в минус.</p>
-    </details>
-
     <div class=lset data-p=punch>
       <div class=row><span class=muted>Панч (порог удара)</span><b id=l-punch>—</b></div>
-      <input type=range id=l-punchv min=0 max=30 step=1 value=15>
-      <p class=hint>Насколько низ должен подняться над своим средним, чтобы
-      засчитался удар. 1.2 — чувствительно (ловит почти каждый удар),
-      1.5 — обычно, 2.0 — только сильные бочки, <b>0</b> — удары выключены.
-      Работает во всех режимах.</p>
+      <input type=range id=l-punchv min=0 max=100 step=5 value=70>
+      <p class=hint>Громкость низа, при которой засчитывается удар, в процентах
+      шкалы. <b>70</b> — обычная музыка, <b>50–60</b> — ловит слабые бочки,
+      <b>85–95</b> — только сильные, <b>0</b> — удары выключены. Работает во всех
+      режимах.</p>
     </div>
     </div>
   </details>
@@ -461,29 +447,6 @@ a{color:#5fb3ff;text-decoration:none}
     </div>
     <p class=hint>От 8 до 300. Применяется по Enter или когда убираешь палец с поля.</p>
 
-    <div class=row><span class=muted>Автоуровень (AGC)</span>
-      <label class=sw><input type=checkbox id=l-agc><i></i></label>
-    </div>
-    <p class=hint>AGC поднимает тихие треки и придерживает громкие, но общая
-    яркость всё равно следует за громкостью. Выключи — будет постоянная
-    яркость.</p>
-
-    <div class=row><span class=muted>Характер AGC</span><b id=l-agcs-l>Обычно</b></div>
-    <div class=seg id=l-agcs>
-      <button data-a=0>Плавно</button>
-      <button data-a=1>Обычно</button>
-      <button data-a=2>Живо</button>
-    </div>
-    <p class=hint><b>Плавно</b> — опора держится 8 с, музыка с сильной
-    динамикой не «качается». <b>Живо</b> — догоняет за 1.5 с, больше мигания
-    на ровных треках.</p>
-
-    <div class=row><span class=muted>Автоуровень полос</span>
-      <label class=sw><input type=checkbox id=l-aeq><i></i></label>
-    </div>
-    <p class=hint>Каждая полоса подтягивается к самой громкой (до +12 дБ).
-    Задавленная середина светится наравне с басом, тихие треки не сваливаются
-    в один низ. Выключи, если нужна честная картина спектра.</p>
     </div>
   </details>
 
@@ -491,7 +454,7 @@ a{color:#5fb3ff;text-decoration:none}
     <summary>Проверка полос <span class=muted id=l-adc style="font-weight:400"></span></summary>
     <div class=body>
       <div class=ledbars id=l-bars></div>
-      <p class=hint>16 полос 40 Гц … 5.4 кГц: дБ над фиксированным нулём
+      <p class=hint>16 полос 40 Гц … 6 кГц: дБ над фиксированным нулём
       −50 dBFS, 0…50 — рабочий диапазон. В тишине все полосы стоят на нуле.</p>
       <div class=btns><button class=ghost onclick=ledTest()>Тест R/G/B/W</button></div>
     </div>
@@ -1067,14 +1030,14 @@ async function bleCmd(c){
 
 // ------------------------------------------------------------ подсветка
 
-let ledPoll=null, brTimer=0, gnTimer=0, tlTimer=0, bhTimer=0, softTimer=0;
+let ledPoll=null, brTimer=0, bhTimer=0, softTimer=0;
 let bgTimer=0, spdTimer=0, flTimer=0, perTimer=0, hueTimer=0, fallTimer=0, punchTimer=0;
 let turnTimer=0, reacTimer=0, idleTimer=0, lenTimer=0;
 let snTimer=0, splThrTimer=0;
 
 // Какие настройки есть у каждого режима (совпадает с тем, что реально
-// используется в render() прошивки). «Фон» — общий для всех, «Яркость»
-// и «Чувствительность» тоже, поэтому они вне этого списка.
+// используется в render() прошивки). «Фон» и «Яркость» — общие для всех,
+// поэтому они вне этого списка.
 const LSET={
   0:['fall'],              // VU — спад шкалы
   1:['spd','fall'],        // VU радуга — скорость вращения и спад
@@ -1139,22 +1102,9 @@ function hexHue(hex){
 function syncLed(){
   const L=S&&S.led; if(!L) return;
   const on=$('#l-on');   if(on) on.checked=!!L.on;
-  const ag=$('#l-agc');  if(ag) ag.checked=!!L.agc;
   const br=$('#l-bright');
   if(br && br!==document.activeElement) br.value=L.br;
   const bl=$('#l-br');   if(bl) bl.textContent=L.br+' / 255';
-  const gs=$('#l-gain');
-  if(gs && gs!==document.activeElement) gs.value=(L.gn==null?6:L.gn);
-  const gl=$('#l-gn');
-  if(gl) gl.textContent=(L.gn==null?6:L.gn)+' дБ';
-  const tv=$('#l-tiltv');
-  if(tv && tv!==document.activeElement) tv.value=Math.round((L.tilt==null?2.5:L.tilt)*10);
-  const tl2=$('#l-tilt');
-  if(tl2){ const t=(L.tilt==null?2.5:L.tilt); tl2.textContent=t.toFixed(1)+' дБ/окт'+(t?'':' · выкл'); }
-  const AS=['Плавно','Обычно','Живо'];
-  const asl=$('#l-agcs-l');
-  if(asl) asl.textContent=AS[L.agcs==null?1:L.agcs]||'Обычно';
-  $$('#l-agcs button').forEach(b=>b.classList.toggle('on',+b.dataset.a===(L.agcs==null?1:L.agcs)));
   const md=$('#l-mode'); if(md) md.textContent=(['VU','VU радуга','5 полос','3 полосы','1 полоса','Строб','Цвет','Бегущие','Спектр','Смена цвета','Радуга','Импульс','Мембрана','Комета','Змейка'][L.mode]||'—');
   $$('#l-modes button').forEach(b=>b.classList.toggle('on',+b.dataset.m===L.mode));
   applyModeUI(L.mode);
@@ -1169,7 +1119,6 @@ function syncLed(){
   const sl=$('#l-soft');
   if(sl) sl.textContent=['выкл','лёгкое','среднее','сильное'][L.soft==null?0:L.soft]||'выкл';
   const dt=$('#l-dith'); if(dt) dt.checked=(L.dith==null?1:L.dith)?true:false;
-  const ae=$('#l-aeq'); if(ae) ae.checked=!!L.aeq;
   const spv=$('#l-spdv');
   if(spv && spv!==document.activeElement) spv.value=Math.round((L.spd==null?5:L.spd)*10);
   const spl=$('#l-spd');
@@ -1219,9 +1168,9 @@ function syncLed(){
   const spkl=$('#l-splk');
   if(spkl) spkl.textContent=(L.splthr==null?50:L.splthr)+' %';
   const puv=$('#l-punchv');
-  if(puv && puv!==document.activeElement) puv.value=Math.round((L.punch==null?1.5:L.punch)*10);
+  if(puv && puv!==document.activeElement) puv.value=(L.punch==null?70:L.punch);
   const pul=$('#l-punch');
-  if(pul) pul.textContent=(L.punch?L.punch.toFixed(1)+'×':'выкл');
+  if(pul) pul.textContent=(L.punch?L.punch+' %':'выкл');
   const cn=$('#l-cnt');
   if(cn && cn!==document.activeElement) cn.value=L.cnt;
   const ad=$('#l-adc');
@@ -1286,30 +1235,11 @@ if(lc){
   lc.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); lc.blur(); } };
 }
 $('#l-on').onchange=e=>ledCmd(e.target.checked?'on':'off');
-$('#l-agc').onchange=e=>ledCmd('agc '+(e.target.checked?1:0),true);
-$$('#l-agcs button').forEach(b=>b.onclick=()=>{
-  $$('#l-agcs button').forEach(x=>x.classList.toggle('on',x===b));
-  const lb=$('#l-agcs-l'); if(lb) lb.textContent=b.textContent;
-  ledCmd('agcs '+b.dataset.a,true);
-});
 $('#l-bright').oninput=e=>{
   const v=+e.target.value;
   const bl=$('#l-br'); if(bl) bl.textContent=v+' / 255';
   clearTimeout(brTimer);
   brTimer=setTimeout(()=>ledCmd('bright '+v,true),90);
-};
-$('#l-gain').oninput=e=>{
-  const v=+e.target.value;
-  const gl=$('#l-gn'); if(gl) gl.textContent=v+' дБ';
-  clearTimeout(gnTimer);
-  gnTimer=setTimeout(()=>ledCmd('gain '+v,true),120);
-};
-$('#l-tiltv').oninput=e=>{
-  const v=+e.target.value;
-  const tl=$('#l-tilt');
-  if(tl) tl.textContent=(v/10).toFixed(1)+' дБ/окт'+(v?'':' · выкл');
-  clearTimeout(tlTimer);
-  tlTimer=setTimeout(()=>ledCmd('tilt '+(v/10).toFixed(1),true),120);
 };
 $('#l-bgv').oninput=e=>{
   const v=+e.target.value;
@@ -1329,7 +1259,6 @@ $('#l-softv').oninput=e=>{
   softTimer=setTimeout(()=>ledCmd('soft '+v,true),120);
 };
 $('#l-dith').onchange=e=>ledCmd('dither '+(e.target.checked?1:0),true);
-$('#l-aeq').onchange=e=>ledCmd('aeq '+(e.target.checked?1:0),true);
 $('#l-spdv').oninput=e=>{
   const v=+e.target.value;
   const b=$('#l-spd'); if(b) b.textContent=(v/10).toFixed(1)+'×';
@@ -1408,9 +1337,9 @@ $('#l-splkv').oninput=e=>{
 };
 $('#l-punchv').oninput=e=>{
   const v=+e.target.value;
-  const b=$('#l-punch'); if(b) b.textContent=(v/10).toFixed(1)+'×';
+  const b=$('#l-punch'); if(b) b.textContent=v?v+' %':'выкл';
   clearTimeout(punchTimer);
-  punchTimer=setTimeout(()=>ledCmd('punch '+(v/10).toFixed(1),true),150);
+  punchTimer=setTimeout(()=>ledCmd('punch '+v,true),150);
 };
 
 // ------------------------------------------------------------ OTA по BLE
