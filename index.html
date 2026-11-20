@@ -450,12 +450,14 @@ a{color:#5fb3ff;text-decoration:none}
     </div>
   </details>
 
-  <details class=card>
+  <details class=card id=l-spec>
     <summary>Проверка полос <span class=muted id=l-adc style="font-weight:400"></span></summary>
     <div class=body>
       <div class=ledbars id=l-bars></div>
-      <p class=hint>16 полос 40 Гц … 6 кГц: дБ над фиксированным нулём
-      −50 dBFS, 0…50 — рабочий диапазон. В тишине все полосы стоят на нуле.</p>
+      <p class=hint>16 полос 40 Гц … 6 кГц: дБ над адаптивной опорой,
+      0…45 — рабочий диапазон. Опора следует за уровнем трека, поэтому
+      картинка не зависит от громкости. В тишине все полосы стоят на нуле.
+      Опрос идёт только при развёрнутом блоке.</p>
       <div class=btns><button class=ghost onclick=ledTest()>Тест R/G/B/W</button></div>
     </div>
   </details>
@@ -508,8 +510,8 @@ function logCmd(s){
   const t=new Date().toLocaleTimeString('ru-RU',{hour12:false});
   if(el.dataset.raw!=='1'){ el.textContent=''; el.dataset.raw='1'; }
   el.textContent+=(el.textContent?'\n':'')+t+'  '+s;
-  // Опрос полос идёт 3 раза в секунду — без обрезки журнал за минуту
-  // раздувается в тысячи строк и тормозит телефон.
+  // Опрос полос идёт только при развёрнутом блоке спектра — без обрезки
+  // журнал за минуту раздувается в тысячи строк и тормозит телефон.
   const lines=el.textContent.split('\n');
   if(lines.length>120) el.textContent=lines.slice(-100).join('\n');
   el.scrollTop=el.scrollHeight;
@@ -1191,23 +1193,33 @@ function drawBands(db){
   const box=$('#l-bars'); if(!box||!db) return;
   while(box.children.length<db.length) box.appendChild(document.createElement('i'));
   [...box.children].forEach((el,i)=>{
-    // db — это дБ над калиброванным нулём: 0…50 = 0…100 %
-    const v=Math.max(0,Math.min(1,(db[i]||0)/50));
+    // db — это дБ над адаптивной опорой: 0…45 = 0…100 %
+    const v=Math.max(0,Math.min(1,(db[i]||0)/45));
     el.style.height=Math.max(2,Math.round(v*86))+'px';
     el.classList.toggle('off',v<0.04);
   });
 }
 
-// Полосы опрашиваем только на открытой вкладке «Свет» и только когда
-// очередь команд пуста — иначе ответы перепутаются между собой.
+// Полосы опрашиваем только на открытой вкладке «Свет» и только когда блок
+// спектра реально развёрнут: свёрнутый блок не создаёт трафика вовсе.
+// Очередь команд должна быть пуста, иначе ответы перепутаются.
 function lightPoll(on){
   clearInterval(ledPoll); ledPoll=null;
   if(!on) return;
+  const spec=$('#l-spec');
+  if(!spec||!spec.open) return;
   ledPoll=setInterval(async()=>{
     if(!bleOn()||pending.length||otaBusy) return;
     try{ const r=await ask('led bands',2200); if(r&&r.db) drawBands(r.db); }catch(e){}
-  },320);
+  },500);
 }
+
+// Развернули/свернули блок — сразу включаем или гасим опрос.
+const specCard=$('#l-spec');
+if(specCard) specCard.addEventListener('toggle',()=>{
+  const on=$('#light').classList.contains('on');
+  lightPoll(on);
+});
 
 function ledTest(){ ledCmd('test').then(r=>{ if(r) toast('тест 3 с'); }); }
 
