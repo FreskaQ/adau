@@ -196,7 +196,7 @@ a{color:#5fb3ff;text-decoration:none}
 </style></head><body>
 
 <header>
- <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.34</small></div>
+ <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.35</small></div>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i></span>
  <button id=pill class="pill bad" onclick=bleToggle() title="Подключить или отключить">Подключить</button>
 </header>
@@ -293,10 +293,17 @@ a{color:#5fb3ff;text-decoration:none}
     <div class=lset data-p=punch>
       <div class=row><span class=muted>Панч (порог удара)</span><b id=l-punch>—</b></div>
       <input type=range id=l-punchv min=0 max=100 step=5 value=70>
-      <p class=hint>Громкость низа, при которой засчитывается удар, в процентах
-      шкалы. <b>70</b> — обычная музыка, <b>50–60</b> — ловит слабые бочки,
-      <b>85–95</b> — только сильные, <b>0</b> — удары выключены. Работает во всех
-      режимах.</p>
+      <p class=hint>Порог удара: во сколько раз низ должен превысить своё
+      среднее за «Опору». <b>80</b> — как 150 в 2.9.9; <b>60–70</b> — чаще,
+      <b>90–100</b> — только сильные удары, <b>0</b> — выключить. Работает во
+      всех режимах.</p>
+    </div>
+    <div class=lset data-p=bref>
+      <div class=row><span class=muted>Опора удара</span><b id=l-bref>—</b></div>
+      <input type=range id=l-brefv min=100 max=1000 step=25 value=300>
+      <p class=hint>Сколько миллисекунд низ усредняется для порога.
+      <b>300 мс</b> — как в 2.9.9. Меньше — спокойнее, больше — чувствительнее
+      к плотному басу.</p>
     </div>
     </div>
   </details>
@@ -1033,7 +1040,7 @@ async function bleCmd(c){
 // ------------------------------------------------------------ подсветка
 
 let ledPoll=null, brTimer=0, bhTimer=0, softTimer=0;
-let bgTimer=0, spdTimer=0, flTimer=0, perTimer=0, hueTimer=0, fallTimer=0, punchTimer=0;
+let bgTimer=0, spdTimer=0, flTimer=0, perTimer=0, hueTimer=0, fallTimer=0, punchTimer=0, brefTimer=0;
 let turnTimer=0, reacTimer=0, idleTimer=0, lenTimer=0;
 let snTimer=0, splThrTimer=0;
 
@@ -1173,6 +1180,10 @@ function syncLed(){
   if(puv && puv!==document.activeElement) puv.value=(L.punch==null?70:L.punch);
   const pul=$('#l-punch');
   if(pul) pul.textContent=(L.punch?L.punch+' %':'выкл');
+  const brv=$('#l-brefv');
+  if(brv && brv!==document.activeElement) brv.value=(L.brefms==null?300:L.brefms);
+  const brl=$('#l-bref');
+  if(brl) brl.textContent=(L.brefms==null?300:L.brefms)+' мс';
   const cn=$('#l-cnt');
   if(cn && cn!==document.activeElement) cn.value=L.cnt;
   const ad=$('#l-adc');
@@ -1352,6 +1363,12 @@ $('#l-punchv').oninput=e=>{
   const b=$('#l-punch'); if(b) b.textContent=v?v+' %':'выкл';
   clearTimeout(punchTimer);
   punchTimer=setTimeout(()=>ledCmd('punch '+v,true),150);
+};
+$('#l-brefv').oninput=e=>{
+  const v=+e.target.value;
+  const b=$('#l-bref'); if(b) b.textContent=v+' мс';
+  clearTimeout(brefTimer);
+  brefTimer=setTimeout(()=>ledCmd('bref '+v,true),150);
 };
 
 // ------------------------------------------------------------ OTA по BLE
