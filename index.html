@@ -237,6 +237,14 @@ a{color:#5fb3ff;text-decoration:none}
   .battgrid>div{background:#111823;border:1px solid #1e2836;border-radius:12px;padding:9px 10px}
   .battgrid .k{font-size:10.5px;color:#7d8b9f;letter-spacing:.06em;text-transform:uppercase}
   .battgrid .v{font-size:17px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+  .bcellgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 2px}
+  .bcell{background:#111823;border:1px solid #1e2836;border-radius:10px;padding:7px 9px}
+  .bcell .t{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+  .bcell .n{font-size:10.5px;color:#7d8b9f;letter-spacing:.05em;text-transform:uppercase}
+  .bcell .u{font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums}
+  .bcell .bar{height:5px;border-radius:4px;background:#222c3a;overflow:hidden;margin-top:6px}
+  .bcell .bar i{display:block;height:100%;background:#4f8cff;border-radius:4px}
+  .bcell .bar i.lo{background:#e5a13a}
 </style></head><body>
 
 <header>
@@ -565,6 +573,8 @@ a{color:#5fb3ff;text-decoration:none}
       <div><div class=k>Температура</div><div class=v id=b-t>—</div></div>
       <div><div class=k>Ячейки</div><div class=v id=b-cells>—</div></div>
     </div>
+    <div class=row style="margin-top:14px"><span class=muted>Ячейки</span><b id=b-cvsum>—</b></div>
+    <div id=b-cvlist class=bcellgrid></div>
     <div class=btns>
       <button class=ghost id=b-btn onclick=bmsNow()>Обновить</button>
       <button class=ghost onclick=bmsForget()>Найти заново</button>
@@ -1373,6 +1383,26 @@ function resetBms(){
     const el=$(s); if(el) el.textContent='—';
   });
   const bar=$('#b-socbar'); if(bar) bar.style.width='0';
+  const sum=$('#b-cvsum'); if(sum) sum.textContent='—';
+  const list=$('#b-cvlist'); if(list) list.innerHTML='';
+}
+
+// Ячейки: список с полосками по абсолютной шкале 3.0…4.2 В, самая низкая —
+// янтарная. Разбег Δ в милливольтах — главное число для балансировки.
+function showBmsCells(x){
+  const box=$('#b-cvlist'); if(!box) return;
+  const sum=$('#b-cvsum');
+  const cv=Array.isArray(x.cv)?x.cv:[];
+  if(!cv.length){ if(sum) sum.textContent='—'; return; }
+  const min=Math.min(...cv), max=Math.max(...cv);
+  if(sum) sum.textContent='Δ '+Math.round((max-min)*1000)+' мВ';
+  box.innerHTML=cv.map((v,i)=>{
+    const pct=Math.max(0,Math.min(100,(v-3.0)/1.2*100));
+    const lo=(v<=min+1e-9)?' class=lo':'';
+    return '<div class=bcell><div class=t><span class=n>Ячейка '+(i+1)+'</span>'+
+      '<span class=u>'+v.toFixed(3)+' В</span></div>'+
+      '<div class=bar><i'+lo+' style="width:'+pct.toFixed(1)+'%"></i></div></div>';
+  }).join('');
 }
 
 function showBms(x){
@@ -1386,6 +1416,7 @@ function showBms(x){
   set('#b-rem',(+x.rem||0).toFixed(2)+' / '+(+x.nom||0).toFixed(0)+' А·ч');
   set('#b-t',x.t==null?'—':((+x.t).toFixed(1)+' °C'));
   set('#b-cells',(x.cells|0)+'S');
+  showBmsCells(x);
   const bar=$('#b-socbar'); if(bar) bar.style.width=soc+'%';
   showBmsMsg('обновлено '+new Date().toLocaleTimeString('ru-RU',{hour12:false}),true);
 }
