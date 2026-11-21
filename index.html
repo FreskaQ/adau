@@ -16,14 +16,6 @@ header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-
  padding:14px 14px 8px;background:rgba(15,19,26,.9);backdrop-filter:blur(12px)}
 header b{font-size:17px;font-weight:650;letter-spacing:.2px}
 .ver{font-size:11px;color:#8494ab;font-weight:400;letter-spacing:.04em}
-.pill{font-size:11.5px;padding:5px 10px;border-radius:20px;background:#1b2230;color:#93a1b5}
-.pill.ok{background:#12301e;color:#54d977}
-.pill.bad{background:#341a1c;color:#ff7b72}
-/* подключено: вместо зелёной кнопки — крупные три точки */
-.pill.dots{display:inline-flex;align-items:center;justify-content:center;gap:6px;
- padding:9px 14px;min-width:56px}
-.pill.dots i{display:block;width:9px;height:9px;border-radius:50%;
- background:currentColor;box-shadow:0 0 7px currentColor}
 .ver[hidden]{display:none}
 nav{position:sticky;top:46px;z-index:19;display:flex;gap:3px;margin:0 14px 8px;padding:3px;
  border-radius:12px;background:#151b25;backdrop-filter:blur(12px)}
@@ -42,6 +34,11 @@ section.page{padding:0 14px}
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3a4557;transition:.2s}
 .dot.ok{background:#54d977;box-shadow:0 0 6px #54d97799}
 .dot.bad{background:#ff7b72;box-shadow:0 0 6px #ff7b7299}
+/* BLE — крупная точка (она же кнопка), ADAU — маленькая и мягко пульсирует */
+.dot.big{width:14px;height:14px}
+.dot.small{width:7px;height:7px}
+.dot.small.ok{animation:adpulse 1.8s ease-in-out infinite}
+@keyframes adpulse{0%,100%{opacity:1}50%{opacity:.4}}
 /* параметры: группы «Выход 1 / Выход 2 / Общее» */
 .group{margin:14px 0 2px}
 .group h2{margin:0 0 6px 4px;font-size:11px;font-weight:650;letter-spacing:.1em;
@@ -124,27 +121,37 @@ a{color:#5fb3ff;text-decoration:none}
 .obar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#38c172,#54d977);
  transition:width .18s}
   /* ======================= мобильный UX (2.9.9) ======================= */
-  header, section.page, .offline{max-width:600px;margin-left:auto;margin-right:auto}
-  .offline{margin-top:10px}
+  header, section.page{max-width:600px;margin-left:auto;margin-right:auto}
   [hidden]{display:none!important}
   :root{--bg:#0b0f16;--card:#151b26;--line:#232d3d;--mut:#8494aa;--acc:#4f8cff;
     --grn:#45d17a;--red:#ff6b66;--rad:16px}
   html{-webkit-text-size-adjust:100%}
   body{padding:0 0 calc(84px + env(safe-area-inset-bottom));font-size:15px;line-height:1.4;
-    background:radial-gradient(120% 40% at 50% 0,#141c29 0,#0b0f16 55%)}
+    background:var(--bg)}
   header{padding:10px 14px;gap:10px;border-bottom:1px solid #1b2433}
   header .brand{display:flex;flex-direction:column;line-height:1.15;flex:1;min-width:0}
   header b{font-size:16px}
-  .hstat{gap:6px}
-  .pill{border:0;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    padding:8px 12px;font-weight:600}
-  .pill.bad{background:#33191b;color:#ff8a84}
-  .pill.ok{background:#10301d;color:#5ce08a}
-  .offline{display:flex;align-items:center;gap:10px;margin:10px auto 0;width:calc(100% - 24px);
-    padding:11px 13px;border-radius:14px;background:linear-gradient(135deg,#1d2a44,#182031);
-    border:1px solid #2c3d5e}
-  .offline span{flex:1;font-size:12.5px;color:#b9c8de;line-height:1.35}
-  .offline button{margin:0;padding:9px 14px;font-size:13px;min-height:40px}
+  .hstat{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;margin-right:-10px}
+  /* BLE и «Диаг» переехали из нижнего меню в шапку — маленькими иконками */
+  .hact{display:flex;gap:2px;flex:0 0 auto}
+  .hicon{display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+    padding:0;margin:0;border-radius:9px;background:transparent;color:#8b98ac}
+  .hicon svg{width:19px;height:19px;display:block}
+  .hicon.on{background:#28344a;color:#eaf1ff}
+  .hicon:active{transform:scale(.94)}
+  /* компактная плашка подключения — как полоса под шапкой */
+  /* крупная точка BLE справа — она же кнопка подключения */
+  .dotwrap{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;
+    padding:0;margin:0;border-radius:50%;background:transparent;flex:0 0 auto}
+  .dotwrap:active{transform:scale(.94)}
+  .connbar{display:flex;align-items:center;gap:10px;
+    background:linear-gradient(135deg,#1d2a44,#182031);border:1px solid #2c3d5e}
+  .connbar.on{background:linear-gradient(135deg,#14301f,#121b24);border-color:#24503a}
+  .connbar .cbox{flex:1;min-width:0}
+  .connbar .cbox b{display:block;font-size:14.5px}
+  .connbar .cbox .muted{font-size:12.5px;color:#b9c8de;line-height:1.35}
+  .connbar .cbox .muted.ok{color:#5ce08a}
+  .connbar button{margin:0;padding:9px 14px;font-size:13px;min-height:40px;flex:0 0 auto}
   nav{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:30;gap:2px;margin:0;
     padding:6px max(8px,calc(50% - 300px)) calc(6px + env(safe-area-inset-bottom));
     border-radius:0;background:rgba(11,15,22,.96);backdrop-filter:blur(16px);
@@ -223,20 +230,19 @@ a{color:#5fb3ff;text-decoration:none}
 
 <header>
  <div class=brand><b>ADAU DSP</b><small class=ver id=ver hidden></small></div>
- <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i></span>
- <button id=pill class="pill bad" onclick=bleToggle() title="Подключить или отключить">Подключить</button>
+ <div class=hact>
+  <button class="hicon on" data-t=conn onclick=showTab('conn') title="Подключение и OTA" aria-label="Подключение и OTA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg></button>
+  <button class=hicon data-t=diag onclick=showTab('diag') title="Диагностика" aria-label="Диагностика"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V5M4 19h16M8 15v-4M12 15V8M16 15v-6"/></svg></button>
+ </div>
+ <span class=hstat><i class="dot small" id=dot-adau title="ADAU1701"></i></span>
+ <button id=pill class=dotwrap onclick=bleToggle() title="Подключить или отключить" aria-label="Подключить">
+  <i class="dot big bad" id=dot-link title="Связь BLE"></i>
+ </button>
 </header>
 
-<div id=off class=offline hidden>
- <span>Плата не подключена. Включи Bluetooth и подключись — пульт запомнит её.</span>
- <button onclick=bleToggle()>Подключить</button>
-</div>
-
-<nav>
+<nav id=nav>
  <button class=tab data-t=main id=tab-main hidden><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="18" r="2.2"/></svg></span>Пульт</button>
  <button class=tab data-t=light id=tab-light hidden><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.5h6c0-1.1.3-1.9 1-2.5A6 6 0 0 0 12 3z"/></svg></span>Свет</button>
- <button class="tab on" data-t=conn><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg></span>BLE</button>
- <button class=tab data-t=diag><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V5M4 19h16M8 15v-4M12 15V8M16 15v-6"/></svg></span>Диаг</button>
 </nav>
 
 <section id=main class=page>
@@ -248,13 +254,20 @@ a{color:#5fb3ff;text-decoration:none}
 </section>
 
 <section id=conn class="page on">
-  <div class=card>
-    <div class=row><b id=c-name>Не подключено</b><b id=c-state class=muted>—</b></div>
+  <div class="card connbar" id=c-bar>
+    <div class=cbox>
+      <b id=c-name>Плата не подключена</b>
+      <div class=muted id=c-state>Включи Bluetooth и подключись — пульт запомнит её.</div>
+    </div>
     <button id=c-btn onclick=bleToggle()>Подключить</button>
-    <p class=muted>Плата <b>ADAU-DSP</b> рядом (до ~10 м). Chrome спросит
-    разрешение на Bluetooth — выбери устройство <b>ADAU-DSP</b>. Если списка
-    нет, включи геолокацию: Android без неё не сканирует BLE.</p>
   </div>
+  <p class=hint>Две точки справа в шапке: маленькая — отвечает ли ADAU1701,
+  крупная — есть ли связь BLE. Нажми на крупную, чтобы подключиться или
+  отключиться.</p>
+  <p class=hint>Плата <b>ADAU-DSP</b> рядом (до ~10 м). Chrome спросит
+  разрешение на Bluetooth — выбери устройство <b>ADAU-DSP</b>. Если списка
+  нет, включи геолокацию: Android без неё не сканирует BLE.</p>
+  <div id=c-more hidden>
   <div class=card>
     <div class=row><span class=muted>Прошивка</span><b id=c-ver>—</b></div>
     <div class=row><span class=muted>Устройство</span><b id=c-dev>—</b></div>
@@ -282,6 +295,7 @@ a{color:#5fb3ff;text-decoration:none}
     <p class=muted>Chrome: меню ⋮ → «Добавить на главный экран». Откроется
     без адресной строки, как обычное приложение. Интернет не нужен.
     iPhone/Safari Web Bluetooth не поддерживают — нужен Android.</p>
+  </div>
   </div>
 </section>
 
@@ -326,6 +340,13 @@ a{color:#5fb3ff;text-decoration:none}
         <button data-sm=3>3 полосы</button>
         <button data-sm=4>1 полоса</button>
       </div>
+      <div class=row style="margin-top:10px"><span class=muted>Цвет полос</span></div>
+      <div class=seg id=l-barcol>
+        <button data-bc=0>Как раньше</button>
+        <button data-bc=1>Палитра</button>
+      </div>
+      <p class=muted>«Как раньше» — постоянные красный, зелёный и жёлтый.
+      «Палитра» — те же три оттенка, но шагают от ударов вместе с музыкой.</p>
     </div>
 
     <div class="lset lsub" id=l-subspek hidden>
@@ -385,12 +406,10 @@ a{color:#5fb3ff;text-decoration:none}
       <div class=seg id=l-rgb>
         <button data-r=0>Оттенки</button>
         <button data-r=1>RGB</button>
-        <button data-r=2>Сток</button>
       </div>
       <p class=muted>«Оттенки» — змейка в оттенках одной палитры, которая
       меняется раз в несколько ударов. «RGB» — цвет плывёт вдоль тела
-      радугой. «Сток» — ровный цвет из ползунка «Цвет подсветки», без смены
-      палитры: с него удобно возвращаться после RGB.</p>
+      радугой.</p>
     </div>
 
     <div class=lset data-p=reac>
@@ -652,6 +671,7 @@ function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');
 
 function showTab(id){
   $$('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t===id));
+  $$('.hicon').forEach(x=>x.classList.toggle('on',x.dataset.t===id));
   $$('.page').forEach(p=>p.classList.toggle('on',p.id===id));
   window.scrollTo(0,0);
   lightPoll(id==='light');
@@ -885,38 +905,46 @@ function syncSlots(){
 function status(){
   const on=bleOn(), s=S||{};
   const p=$('#pill');
-  if(on){
-    // Подключено: зелёная кнопка превращается в крупные три точки.
-    p.innerHTML='<i></i><i></i><i></i>';
-    p.className='pill ok dots';
-    p.title=((ble.dev&&ble.dev.name)||'ESP32')+' подключён по BLE — нажми, чтобы отключить';
-    p.setAttribute('aria-label','ESP32 подключён по BLE');
-  }else{
-    p.textContent='Подключить';
-    p.className='pill bad';
-    p.title='Подключить или отключить';
-    p.setAttribute('aria-label','Подключить');
+  if(p){
+    p.className='dotwrap';
+    p.title=on?'Отключиться от платы':'Подключиться к плате';
+    p.setAttribute('aria-label',p.title);
   }
   // Версию показываем только когда она реально пришла с прошивки.
   const verEl=$('#ver');
   if(verEl){ verEl.hidden=!(on && s.ver); if(s.ver) verEl.textContent='v'+s.ver; }
-  const off=$('#off'); if(off) off.hidden=on;
   // Без подключения «Пульт» и «Свет» не нужны: отправлять команды некуда, а
-  // ползунки показывали бы пустоту. Остаются BLE и «Диаг»; если пользователь
-  // стоял на скрытом разделе — переводим на BLE.
+  // ползунки показывали бы пустоту. BLE и «Диаг» теперь в шапке, поэтому
+  // нижнее меню при обрыве просто прячется.
   const tm=$('#tab-main');  if(tm) tm.hidden=!on;
   const tl=$('#tab-light'); if(tl) tl.hidden=!on;
+  const nv=$('#nav');       if(nv) nv.hidden=!on;
   if(!on){
     const cur=$$('.page').find(x=>x.classList.contains('on'));
     if(cur && (cur.id==='main' || cur.id==='light')) showTab('conn');
   }
-  $('#dot-link').className='dot '+(on?'ok':'bad');
-  $('#dot-adau').className='dot '+(s.adau?'ok':'bad');
+  const dl0=$('#dot-link'), da0=$('#dot-adau');
+  if(dl0){
+    dl0.className='dot big '+(on?'ok':'bad');
+    dl0.title=on?'BLE: подключено':'BLE: нет связи';
+    dl0.setAttribute('aria-label',dl0.title);
+  }
+  if(da0){
+    da0.className='dot small '+(s.adau?'ok':'bad');
+    da0.title=s.adau?'ADAU1701: отвечает':'ADAU1701: нет ответа';
+    da0.setAttribute('aria-label',da0.title);
+  }
 
-  const name=$('#c-name'), st=$('#c-state'), btn=$('#c-btn');
-  if(name) name.textContent=on?((ble.dev&&ble.dev.name)||'ADAU-DSP'):'Не подключено';
-  if(st){ st.textContent=on?'подключено':'—'; st.className=on?'ok':'muted'; }
+  const name=$('#c-name'), st=$('#c-state'), btn=$('#c-btn'), bar=$('#c-bar');
+  if(name) name.textContent=on?((ble.dev&&ble.dev.name)||'ADAU-DSP'):'Плата не подключена';
+  if(st){
+    st.textContent=on?'подключено по BLE'
+      :'Включи Bluetooth и подключись — пульт запомнит её.';
+    st.className=on?'muted ok':'muted';
+  }
+  if(bar) bar.classList.toggle('on',on);
   if(btn) btn.textContent=on?'Отключить':'Подключить';
+  const more=$('#c-more'); if(more) more.hidden=!on;
 
   const dev=$('#c-dev'); if(dev) dev.textContent=on?String((ble.dev&&ble.dev.id)||'—').slice(0,20):'—';
   const v=$('#c-ver');  if(v) v.textContent=s.ver?'v'+s.ver:'—';
@@ -1126,7 +1154,7 @@ const LSET={
   11:['fall'],             // импульс — спад
   12:['fall'],             // Мембрана — спад волны
   13:['spd','fall'],       // комета — скорость бега и длина хвоста
-  14:['spd','fall','turn','rgb','hue','reac','idle','len','sn','spl','splk']  // змейка — скорость, хвост, разворот, цвет, сток-цвет, реакция, тишина, длина, число змеек, разрыв, порог разрыва
+  14:['spd','fall','turn','rgb','reac','idle','len','sn','spl','splk']  // змейка — скорость, хвост, разворот, цвет, реакция, тишина, длина, число змеек, разрыв, порог разрыва
 };
 
 const MDESC=[
@@ -1239,7 +1267,9 @@ function syncLed(){
   const rgv=L.rgb==null?0:L.rgb;
   $$('#l-rgb button').forEach(b=>b.classList.toggle('on',+b.dataset.r===rgv));
   const rgl=$('#l-rgb-l');
-  if(rgl) rgl.textContent=rgv===1?'RGB':(rgv===2?'сток':'оттенки');
+  if(rgl) rgl.textContent=rgv===1?'RGB':'оттенки';
+  const bpv=L.barpal==null?0:L.barpal;
+  $$('#l-barcol button').forEach(b=>b.classList.toggle('on',+b.dataset.bc===bpv));
   const rcv=$('#l-reacv');
   if(rcv && rcv!==document.activeElement) rcv.value=(L.reac==null?60:L.reac);
   const rcl=$('#l-reac');
@@ -1476,6 +1506,10 @@ $$('#l-rgb button').forEach(b=>b.onclick=()=>{
   const lb=$('#l-rgb-l'); if(lb) lb.textContent=b.textContent;
   ledCmd('rgb '+b.dataset.r,true);
 });
+$$('#l-barcol button').forEach(b=>b.onclick=()=>{
+  $$('#l-barcol button').forEach(x=>x.classList.toggle('on',x===b));
+  ledCmd('barpal '+b.dataset.bc,true);
+});
 $('#l-reacv').oninput=e=>{
   const v=+e.target.value;
   const b=$('#l-reac'); if(b) b.textContent=v+' %';
@@ -1554,6 +1588,46 @@ function otaUi(p,txt){
   const m=$('#o-msg'); if(m && txt) m.textContent=txt;
 }
 
+// Начать приём: плата отвечает своим MTU, от него зависит размер куска.
+async function otaBegin(bin,crc){
+  const b=await ask('ota begin '+bin.length+' '+crc.toString(16),8000);
+  if(!b||!b.ok) throw new Error('плата отказала: '+((b&&b.why)||'begin'));
+  return b;
+}
+
+// Быстрая передача: без подтверждения на каждый пакет, кусками по MTU−3.
+// Раз в 12 пакетов спрашиваем `ota state` и сверяем `got` с отправленным
+// смещением — потеря в очереди контроллера видна сразу, а не после CRC.
+async function otaFast(bin,b,prog){
+  if(!ble.ota.writeValueWithoutResponse) throw new Error('нет записи без ответа');
+  const chunk=Math.max(20,Math.min(512,(b.mtu||23)-3));
+  let off=0,n=0;
+  while(off<bin.length){
+    const part=bin.subarray(off,Math.min(off+chunk,bin.length));
+    await ble.ota.writeValueWithoutResponse(part);
+    off+=part.length; n++;
+    if(n%12===0){
+      const st=await ask('ota state',6000);
+      const got=st&&st.ota?st.ota.got:null;
+      if(got!==off) throw new Error('потеря пакетов: '+off+' → '+got);
+      prog(off,chunk);
+    }
+  }
+  prog(off,chunk);
+}
+
+// Медленная передача: каждый кусок с ответом. Запасной путь для телефонов,
+// которые не держат поток записей без подтверждения.
+async function otaSlow(bin,b,prog){
+  const chunk=Math.max(20,Math.min(180,(b.mtu||23)-3));
+  for(let off=0;off<bin.length;off+=chunk){
+    const part=bin.subarray(off,Math.min(off+chunk,bin.length));
+    if(ble.ota.writeValueWithResponse) await ble.ota.writeValueWithResponse(part);
+    else await ble.ota.writeValue(part);
+    if((off/chunk)%16===0) prog(off+part.length,chunk);
+  }
+}
+
 async function otaRun(){
   if(otaBusy) return;
   if(!bleOn()){ toast('сначала подключись'); return; }
@@ -1592,18 +1666,21 @@ async function otaRun(){
     if(m.crc && parseInt(m.crc,16)!==crc) throw new Error('CRC файла не совпал');
 
     otaUi(0.02,'начинаю передачу…');
-    const b=await ask('ota begin '+bin.length+' '+crc.toString(16),8000);
-    if(!b||!b.ok) throw new Error('плата отказала: '+((b&&b.why)||'begin'));
+    let b=await otaBegin(bin,crc);
+    const prog=(off,chunk)=>otaUi(0.02+0.96*off/bin.length,
+      'передаю '+Math.round(off*100/bin.length)+'% · кусок '+chunk+' Б · '+
+      Math.round(bin.length/1024)+' КБ');
 
-    const chunk=Math.max(20,Math.min(400,(b.mtu||23)-3));
-    for(let off=0;off<bin.length;off+=chunk){
-      const part=bin.subarray(off,Math.min(off+chunk,bin.length));
-      if(ble.ota.writeValueWithResponse) await ble.ota.writeValueWithResponse(part);
-      else await ble.ota.writeValue(part);
-      if((off/chunk)%16===0)
-        otaUi(0.02+0.96*off/bin.length,
-          'передаю '+Math.round(off*100/bin.length)+'% · кусок '+chunk+' Б · '+
-          Math.round(bin.length/1024)+' КБ');
+    try{
+      await otaFast(bin,b,prog);
+    }catch(err){
+      // Быстрый путь не прошёл (телефон теряет пакеты без ответа) —
+      // начинаем заново и шлём каждый кусок с подтверждением.
+      otaUi(0.02,'быстро не вышло — повторяю с подтверждением…');
+      try{ await ask('ota abort',4000); }catch(e){}
+      await new Promise(r=>setTimeout(r,700));   // поздние ответы уходят в пустоту
+      b=await otaBegin(bin,crc);
+      await otaSlow(bin,b,prog);
     }
 
     otaUi(0.99,'проверяю CRC и переключаю слот…');
