@@ -226,6 +226,17 @@ a{color:#5fb3ff;text-decoration:none}
     border-radius:10px;background:#111823;cursor:pointer}
   input[type=color]::-webkit-color-swatch-wrapper{padding:3px}
   input[type=color]::-webkit-color-swatch{border:0;border-radius:7px}
+  /* батарея BMS: крупное напряжение и сетка показаний */
+  .battbig{font-size:42px;font-weight:650;letter-spacing:-1.4px;line-height:1.05;
+    margin:6px 0 2px;font-variant-numeric:tabular-nums}
+  .battbig small{font-size:16px;color:var(--mut);font-weight:500;letter-spacing:0}
+  .socbar{height:9px;border-radius:6px;background:#222c3a;overflow:hidden;margin:10px 0 4px}
+  .socbar i{display:block;height:100%;width:0;
+    background:linear-gradient(90deg,#e5484d,#ffd166 45%,#54d977 75%);transition:width .25s}
+  .battgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0 2px}
+  .battgrid>div{background:#111823;border:1px solid #1e2836;border-radius:12px;padding:9px 10px}
+  .battgrid .k{font-size:10.5px;color:#7d8b9f;letter-spacing:.06em;text-transform:uppercase}
+  .battgrid .v{font-size:17px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
 </style></head><body>
 
 <header>
@@ -243,6 +254,7 @@ a{color:#5fb3ff;text-decoration:none}
 <nav id=nav>
  <button class=tab data-t=main id=tab-main hidden><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="18" r="2.2"/></svg></span>Пульт</button>
  <button class=tab data-t=light id=tab-light hidden><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.5h6c0-1.1.3-1.9 1-2.5A6 6 0 0 0 12 3z"/></svg></span>Свет</button>
+ <button class=tab data-t=batt id=tab-batt hidden><span class=ico><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="7" width="16" height="10" rx="2.2"/><path d="M21 10v4"/><path d="M6 10v4"/></svg></span>Батарея</button>
 </nav>
 
 <section id=main class=page>
@@ -540,6 +552,29 @@ a{color:#5fb3ff;text-decoration:none}
   </details>
 </section>
 
+<section id=batt class=page>
+  <div class=card>
+    <div class=row><b class=cardtitle>Аккумулятор</b><span class=muted id=b-msg>—</span></div>
+    <div class=battbig id=b-v>—</div>
+    <div class=socbar><i id=b-socbar></i></div>
+    <div class=battgrid>
+      <div><div class=k>Ток</div><div class=v id=b-i>—</div></div>
+      <div><div class=k>Мощность</div><div class=v id=b-p>—</div></div>
+      <div><div class=k>Заряд</div><div class=v id=b-soc>—</div></div>
+      <div><div class=k>Остаток</div><div class=v id=b-rem>—</div></div>
+      <div><div class=k>Температура</div><div class=v id=b-t>—</div></div>
+      <div><div class=k>Ячейки</div><div class=v id=b-cells>—</div></div>
+    </div>
+    <div class=btns>
+      <button class=ghost id=b-btn onclick=bmsNow()>Обновить</button>
+      <button class=ghost onclick=bmsForget()>Найти заново</button>
+    </div>
+    <p class=muted>Пока эта страница открыта, показания идут каждые 2 секунды.
+    При выходе плата отключается от BMS, чтобы её можно было открыть
+    с телефона.</p>
+  </div>
+</section>
+
 <section id=diag class=page>
   <div class=card>
     <div class=row><span class=muted>ADAU1701</span><b id=d-adau>…</b></div>
@@ -676,6 +711,8 @@ function showTab(id){
   $$('.page').forEach(p=>p.classList.toggle('on',p.id===id));
   window.scrollTo(0,0);
   lightPoll(id==='light');
+  // BMS опрашиваем только пока открыта «Батарея»: ушли — связь рвём.
+  bmsPoll(id==='batt');
 }
 
 $$('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
@@ -919,10 +956,12 @@ function status(){
   // нижнее меню при обрыве просто прячется.
   const tm=$('#tab-main');  if(tm) tm.hidden=!on;
   const tl=$('#tab-light'); if(tl) tl.hidden=!on;
+  const tb=$('#tab-batt');  if(tb) tb.hidden=!on;
   const nv=$('#nav');       if(nv) nv.hidden=!on;
   if(!on){
     const cur=$$('.page').find(x=>x.classList.contains('on'));
-    if(cur && (cur.id==='main' || cur.id==='light')) showTab('conn');
+    if(cur && (cur.id==='main' || cur.id==='light' || cur.id==='batt'))
+      showTab('conn');
   }
   const dl0=$('#dot-link'), da0=$('#dot-adau');
   if(dl0){
@@ -1056,6 +1095,7 @@ function detach(){
     try{ ble.tx.removeEventListener('characteristicvaluechanged',onChunk); }catch(e){}
   }
   ble.rx=null; ble.tx=null; ble.ota=null; ble.buf='';
+  bmsPoll(false);   // BLE пропал — опрос BMS тоже останавливаем
   pending.splice(0).forEach(w=>{ clearTimeout(w.timer); w.reject(new Error('связь потеряна')); });
 }
 
@@ -1313,6 +1353,93 @@ async function ledCmd(cmd,quiet){
     if(r && r.ok===false && !quiet) toast('не вышло');
     return r;
   }catch(e){ if(!quiet) toast('ошибка: '+e.message); return null; }
+}
+
+// ------------------------------------------------------------ BMS (батарея)
+
+// Пока открыта страница «Батарея», раз в 2 секунды просим у платы свежие
+// показания. Плата держит связь с BMS только между этими запросами; ушли
+// со страницы — bmsPoll(false) шлёт `bms off`, и связь рвётся сразу.
+let bmsTimer=0, bmsOn=false, bmsBusy=false, bmsOffPending=false;
+
+function showBmsMsg(t,ok){
+  const el=$('#b-msg'); if(!el) return;
+  el.textContent=t;
+  el.className='muted'+(ok?' ok':'');
+}
+
+function resetBms(){
+  ['#b-v','#b-i','#b-p','#b-soc','#b-rem','#b-t','#b-cells'].forEach(s=>{
+    const el=$(s); if(el) el.textContent='—';
+  });
+  const bar=$('#b-socbar'); if(bar) bar.style.width='0';
+}
+
+function showBms(x){
+  const v=+x.v||0, i=+x.i||0;
+  const soc=Math.max(0,Math.min(100,Math.round(+x.soc||0)));
+  const set=(s,t)=>{const el=$(s); if(el) el.textContent=t;};
+  const bv=$('#b-v'); if(bv) bv.innerHTML=v.toFixed(2)+' <small>В</small>';
+  set('#b-i',(i>=0?'+':'')+i.toFixed(2)+' А');
+  set('#b-p',(v*i>=0?'+':'')+(v*i).toFixed(1)+' Вт');
+  set('#b-soc',soc+' %');
+  set('#b-rem',(+x.rem||0).toFixed(2)+' / '+(+x.nom||0).toFixed(0)+' А·ч');
+  set('#b-t',x.t==null?'—':((+x.t).toFixed(1)+' °C'));
+  set('#b-cells',(x.cells|0)+'S');
+  const bar=$('#b-socbar'); if(bar) bar.style.width=soc+'%';
+  showBmsMsg('обновлено '+new Date().toLocaleTimeString('ru-RU',{hour12:false}),true);
+}
+
+function bmsSendOff(){
+  if(!bleOn()) return;
+  ask('bms off',3000).catch(()=>{});
+}
+
+function bmsFetch(){
+  if(!bmsOn || !bleOn() || bmsBusy) return;
+  bmsBusy=true;
+  showBmsMsg('читаю…');
+  ask('bms',20000).then(r=>{
+    if(r && r.bms) showBms(r.bms);
+    else showBmsMsg((r&&r.why)||'нет ответа');
+  }).catch(e=>{
+    showBmsMsg((e&&e.message)||'нет ответа');
+  }).finally(()=>{
+    bmsBusy=false;
+    if(bmsOffPending){ bmsOffPending=false; bmsSendOff(); return; }
+    if(bmsOn) bmsTimer=setTimeout(bmsFetch,2000);
+  });
+}
+
+function bmsPoll(on){
+  on=!!on;
+  if(on===bmsOn && !on) return;
+  bmsOn=on;
+  clearTimeout(bmsTimer); bmsTimer=0;
+  if(!on){
+    if(bmsBusy) bmsOffPending=true;
+    else bmsSendOff();
+    return;
+  }
+  if(!bleOn()) return;
+  bmsFetch();
+}
+
+function bmsNow(){
+  if(!bleOn()){ toast('сначала подключись'); return; }
+  if(bmsBusy) return;
+  clearTimeout(bmsTimer); bmsTimer=0;
+  bmsFetch();
+}
+
+async function bmsForget(){
+  if(!bleOn()){ toast('сначала подключись'); return; }
+  if(bmsBusy){ toast('ещё читаю'); return; }
+  clearTimeout(bmsTimer); bmsTimer=0;
+  try{ await ask('bms forget',3000); }catch(e){}
+  resetBms();
+  showBmsMsg('ищу BMS заново…');
+  if(bmsOn) bmsFetch();
 }
 
 function drawBands(db){
