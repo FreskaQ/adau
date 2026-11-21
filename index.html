@@ -343,10 +343,10 @@ a{color:#5fb3ff;text-decoration:none}
       </div>
       <div class=row style="margin-top:10px"><span class=muted>Цвет полос</span></div>
       <div class=seg id=l-barcol>
-        <button data-bc=0>Как раньше</button>
+        <button data-bc=0>Полосы</button>
         <button data-bc=1>Палитра</button>
       </div>
-      <p class=muted>«Как раньше» — постоянные красный, зелёный и жёлтый.
+      <p class=muted>«Полосы» — постоянные красный, зелёный и жёлтый.
       «Палитра» — те же три оттенка, но шагают от ударов вместе с музыкой.</p>
     </div>
 
@@ -1342,23 +1342,29 @@ function buildFreqLabels(){
 // не растягивает карточки, а подсказка открывается по тапу.
 function setupTips(){
   $$('.lset').forEach(l=>{
-    const p=l.querySelector(':scope > p.hint, :scope > p.muted');
-    if(!p) return;
-    const row=l.querySelector(':scope > .row');
-    if(!row) return;
-    const tip=document.createElement('span');
-    tip.className='tip';
-    tip.setAttribute('role','button');
-    tip.setAttribute('tabindex','0');
-    tip.setAttribute('aria-label','Подсказка');
-    tip.textContent='!';
-    const bub=document.createElement('span');
-    bub.className='bub';
-    bub.innerHTML=p.innerHTML;
-    tip.appendChild(bub);
-    const label=row.querySelector('span.muted')||row.firstElementChild||row;
-    label.appendChild(tip);
-    p.remove();
+    // В одном блоке бывает несколько настроек: у каждой подсказки свой
+    // заголовок. Ищем ближайшую строку ВЫШЕ подсказки, а не первую в блоке,
+    // иначе текст «Цвет полос» уезжал к «Сколько полос».
+    const ps=[...l.querySelectorAll(':scope > p.hint, :scope > p.muted')];
+    ps.forEach(p=>{
+      let row=p.previousElementSibling;
+      while(row && !row.classList.contains('row')) row=row.previousElementSibling;
+      if(!row) row=l.querySelector(':scope > .row');
+      if(!row) return;
+      const tip=document.createElement('span');
+      tip.className='tip';
+      tip.setAttribute('role','button');
+      tip.setAttribute('tabindex','0');
+      tip.setAttribute('aria-label','Подсказка');
+      tip.textContent='!';
+      const bub=document.createElement('span');
+      bub.className='bub';
+      bub.innerHTML=p.innerHTML;
+      tip.appendChild(bub);
+      const label=row.querySelector('span.muted')||row.firstElementChild||row;
+      label.appendChild(tip);
+      p.remove();
+    });
   });
   document.addEventListener('click',e=>{
     if(e.target.closest('.bub')) return;
