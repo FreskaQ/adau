@@ -285,7 +285,8 @@ a{color:#5fb3ff;text-decoration:none}
     <div class=obar><i id=o-bar></i></div>
     <p class=muted id=o-msg>Прошивка качается с сайта и уходит по Bluetooth во второй
     слот. Пока файл не проверен (размер и CRC32), плата грузит старую прошивку —
-    оборванная связь ничего не ломает.</p>
+    оборванная связь ничего не ломает. Если версия уже стоит, её можно
+    переустановить.</p>
     <div class=btns>
       <button class=ghost id=o-btn onclick=otaRun()>Проверить обновление</button>
     </div>
@@ -1596,20 +1597,32 @@ async function otaBegin(bin,crc){
 }
 
 // Быстрая передача: без подтверждения на каждый пакет, кусками по MTU−3.
-// Раз в 12 пакетов спрашиваем `ota state` и сверяем `got` с отправленным
-// смещением — потеря в очереди контроллера видна сразу, а не после CRC.
-async function otaFast(bin,b,prog){
-  if(!ble.ota.writeValueWithoutResponse) throw new Error('нет записи без ответа');
+// gap — пауза после каждого пакета. Без неё Android отдаёт пакеты в контроллер
+// быстрее, чем ESP32 успевает их разобрать (запись во флеш блокирует хост),
+// и часть пакетов теряется. Раз в 12 пакетов сверяем `got` с отправленным.
+async function otaFast(bin,b,prog,gap){
+  if(!ble.ota.writeValueWithoutResponse)
+    throw Object.assign(new Error('нет записи без ответа'),{fatal:true});
   const chunk=Math.max(20,Math.min(512,(b.mtu||23)-3));
   let off=0,n=0;
   while(off<bin.length){
     const part=bin.subarray(off,Math.min(off+chunk,bin.length));
-    await ble.ota.writeValueWithoutResponse(part);
+    try{
+      await ble.ota.writeValueWithoutResponse(part);
+    }catch(e){
+      e.off=off;
+      if(off===0 && e.name==='NotSupportedError') e.fatal=true;
+      throw e;
+    }
     off+=part.length; n++;
+    if(gap) await new Promise(r=>setTimeout(r,gap));
     if(n%12===0){
-      const st=await ask('ota state',6000);
+      const st=await ask('ota state',8000);
       const got=st&&st.ota?st.ota.got:null;
-      if(got!==off) throw new Error('потеря пакетов: '+off+' → '+got);
+      if(got!==off){
+        const e=new Error('потеря пакетов: '+off+' → '+got);
+        e.off=off; throw e;
+      }
       prog(off,chunk);
     }
   }
@@ -1619,7 +1632,7 @@ async function otaFast(bin,b,prog){
 // Медленная передача: каждый кусок с ответом. Запасной путь для телефонов,
 // которые не держат поток записей без подтверждения.
 async function otaSlow(bin,b,prog){
-  const chunk=Math.max(20,Math.min(180,(b.mtu||23)-3));
+  const chunk=Math.max(20,Math.min(400,(b.mtu||23)-3));
   for(let off=0;off<bin.length;off+=chunk){
     const part=bin.subarray(off,Math.min(off+chunk,bin.length));
     if(ble.ota.writeValueWithResponse) await ble.ota.writeValueWithResponse(part);
@@ -1649,12 +1662,17 @@ async function otaRun(){
     const m=await rj.json();
     if($('#o-new')) $('#o-new').textContent='v'+m.ver;
 
-    if(verNum(m.ver)<=verNum(cur)){
-      otaUi(1,'уже последняя версия: v'+cur);
-      toast('обновлять нечего');
+    // Та же версия на сайте — не ошибка: разрешаем переустановить, чтобы
+    // проверить передачу или восстановить плату.
+    const same=verNum(m.ver)===verNum(cur);
+    if(verNum(m.ver)<verNum(cur)){
+      otaUi(1,'на сайте старее: v'+m.ver);
+      toast('на сайте старее, чем в плате');
       return;
     }
-    if(!confirm('Обновить v'+cur+' → v'+m.ver+'?\n\n'+(m.notes||'')+
+    if(!confirm((same?'Переустановить v'+m.ver+'?'
+        :'Обновить v'+cur+' → v'+m.ver+'?')+
+      '\n\n'+(m.notes||'')+
       '\n\nТелефон держи рядом, 30–60 секунд.')){ otaUi(0,'обновление отменено'); return; }
 
     otaUi(0.01,'качаю прошивку с сайта…');
@@ -1666,20 +1684,37 @@ async function otaRun(){
     if(m.crc && parseInt(m.crc,16)!==crc) throw new Error('CRC файла не совпал');
 
     otaUi(0.02,'начинаю передачу…');
-    let b=await otaBegin(bin,crc);
     const prog=(off,chunk)=>otaUi(0.02+0.96*off/bin.length,
       'передаю '+Math.round(off*100/bin.length)+'% · кусок '+chunk+' Б · '+
       Math.round(bin.length/1024)+' КБ');
 
-    try{
-      await otaFast(bin,b,prog);
-    }catch(err){
-      // Быстрый путь не прошёл (телефон теряет пакеты без ответа) —
-      // начинаем заново и шлём каждый кусок с подтверждением.
-      otaUi(0.02,'быстро не вышло — повторяю с подтверждением…');
+    // Сначала самый быстрый режим, потом с паузами: если телефон отдаёт
+    // пакеты в контроллер слишком плотно, они теряются — пауза это лечит.
+    // Если не вышло ни разу — шлём каждый кусок с подтверждением.
+    const plan=[0,6,12];
+    let sent=false, last=null;
+    for(let i=0;i<plan.length && !sent;i++){
+      const gap=plan[i];
+      try{
+        const b=await otaBegin(bin,crc);
+        otaUi(0.02, gap
+          ? 'передаю без подтверждений, пауза '+gap+' мс…'
+          : 'передаю без подтверждений…');
+        await otaFast(bin,b,prog,gap);
+        sent=true;
+      }catch(err){
+        last=err;
+        if(err.fatal) break;                       // телефон не умеет такой режим
+        try{ await ask('ota abort',4000); }catch(e){}
+        await new Promise(r=>setTimeout(r,700));   // поздние ответы — в пустоту
+      }
+    }
+    if(!sent){
+      otaUi(0.02,'быстро не вышло ('+((last&&last.message)||'?')+
+        ') — шлю с подтверждением…');
       try{ await ask('ota abort',4000); }catch(e){}
-      await new Promise(r=>setTimeout(r,700));   // поздние ответы уходят в пустоту
-      b=await otaBegin(bin,crc);
+      await new Promise(r=>setTimeout(r,700));
+      const b=await otaBegin(bin,crc);
       await otaSlow(bin,b,prog);
     }
 
