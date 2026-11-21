@@ -15,10 +15,16 @@ body{margin:0;padding:0 0 30px;background:var(--bg);color:var(--tx);
 header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
  padding:14px 14px 8px;background:rgba(15,19,26,.9);backdrop-filter:blur(12px)}
 header b{font-size:17px;font-weight:650;letter-spacing:.2px}
-.ver{font-size:10px;color:#5b687c;font-weight:400;letter-spacing:.04em}
+.ver{font-size:11px;color:#8494ab;font-weight:400;letter-spacing:.04em}
 .pill{font-size:11.5px;padding:5px 10px;border-radius:20px;background:#1b2230;color:#93a1b5}
 .pill.ok{background:#12301e;color:#54d977}
 .pill.bad{background:#341a1c;color:#ff7b72}
+/* подключено: вместо зелёной кнопки — крупные три точки */
+.pill.dots{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+ padding:9px 14px;min-width:56px}
+.pill.dots i{display:block;width:9px;height:9px;border-radius:50%;
+ background:currentColor;box-shadow:0 0 7px currentColor}
+.ver[hidden]{display:none}
 nav{position:sticky;top:46px;z-index:19;display:flex;gap:3px;margin:0 14px 8px;padding:3px;
  border-radius:12px;background:#151b25;backdrop-filter:blur(12px)}
 .tab{flex:1;padding:8px;border:0;border-radius:9px;background:transparent;color:#8b98ac;
@@ -134,8 +140,8 @@ a{color:#5fb3ff;text-decoration:none}
     padding:8px 12px;font-weight:600}
   .pill.bad{background:#33191b;color:#ff8a84}
   .pill.ok{background:#10301d;color:#5ce08a}
-  .offline{display:flex;align-items:center;gap:10px;margin:10px 12px 0;padding:11px 13px;
-    border-radius:14px;background:linear-gradient(135deg,#1d2a44,#182031);
+  .offline{display:flex;align-items:center;gap:10px;margin:10px auto 0;width:calc(100% - 24px);
+    padding:11px 13px;border-radius:14px;background:linear-gradient(135deg,#1d2a44,#182031);
     border:1px solid #2c3d5e}
   .offline span{flex:1;font-size:12.5px;color:#b9c8de;line-height:1.35}
   .offline button{margin:0;padding:9px 14px;font-size:13px;min-height:40px}
@@ -170,8 +176,28 @@ a{color:#5fb3ff;text-decoration:none}
     line-height:1.15;background:#212c3e;color:#c3d1e6;border:1px solid #2b3a52}
   .seg button.on{background:linear-gradient(180deg,#5a97ff,#3d78e6);color:#fff;
     border-color:#6aa2ff;box-shadow:0 4px 14px #4f8cff33}
-  .lset{padding:11px 0;border-top:1px solid #1e2836}
+  /* подрежимы: 2 или 3 кнопки должны занимать всю ширину, а не сетку 3×N */
+  .lset.lsub .seg{display:flex}
+  .lset{padding:11px 0;border-top:1px solid #1e2836;position:relative}
+  .lset.lsub{padding:2px 0 6px;border-top:0}
+  .lset.lsub .row{padding-top:0}
+  .lset.lsub .seg{margin-top:6px}
   .lset .row span{font-size:13px}
+  .lset .row span.muted{display:inline-flex;align-items:center;gap:6px;min-width:0}
+  /* кружок «!» с подсказкой: комментарии у ползунков больше не занимают место */
+  .tip{display:inline-flex;align-items:center;justify-content:center;position:static;
+    width:17px;height:17px;border-radius:50%;border:1px solid #3d4b62;color:#8ea1bb;
+    font-size:11px;font-weight:700;line-height:1;cursor:pointer;flex:0 0 auto;
+    -webkit-user-select:none;user-select:none}
+  .tip:hover,.tip:focus-visible,.tip.on{border-color:#5a97ff;color:#dce8ff;background:#1d2a3f}
+  .tip .bub{display:none;position:absolute;left:0;right:0;top:30px;z-index:30;
+    padding:10px 12px;border-radius:11px;background:#0c1420;border:1px solid #2b3a52;
+    color:#b9c8de;font-size:12px;font-weight:400;line-height:1.45;text-align:left;
+    box-shadow:0 10px 28px #000a}
+  .tip.on .bub{display:block}
+  .ledfreq{display:flex;gap:3px;height:12px;margin:-1px 0 7px}
+  .ledfreq span{flex:1;min-width:0;text-align:center;font-size:8.5px;line-height:1;
+    color:#6e7f96;white-space:nowrap}
   details.card{padding:0;overflow:hidden}
   details.card>summary{list-style:none;display:flex;align-items:center;gap:8px;
     padding:13px;min-height:48px;cursor:pointer;font-weight:600;font-size:15px}
@@ -196,7 +222,7 @@ a{color:#5fb3ff;text-decoration:none}
 </style></head><body>
 
 <header>
- <div class=brand><b>ADAU DSP</b><small class=ver id=ver>v2.9.35</small></div>
+ <div class=brand><b>ADAU DSP</b><small class=ver id=ver hidden></small></div>
  <span class=hstat><i class=dot id=dot-adau></i><i class=dot id=dot-link></i></span>
  <button id=pill class="pill bad" onclick=bleToggle() title="Подключить или отключить">Подключить</button>
 </header>
@@ -267,14 +293,10 @@ a{color:#5fb3ff;text-decoration:none}
     </div>
     <div class=seg id=l-modes>
       <button data-m=0>VU</button>
-      <button data-m=1>VU радуга</button>
-      <button data-m=2>5 полос</button>
-      <button data-m=3>3 полосы</button>
-      <button data-m=4>1 полоса</button>
+      <button data-m=2>Полосы</button>
       <button data-m=5>Строб</button>
       <button data-m=6>Цвет</button>
-      <button data-m=7>Бегущие</button>
-      <button data-m=8>Спектр</button>
+      <button data-m=7>Спектр</button>
       <button data-m=9>Смена</button>
       <button data-m=10>Радуга</button>
       <button data-m=11>Импульс</button>
@@ -286,31 +308,33 @@ a{color:#5fb3ff;text-decoration:none}
   </div>
 
   <details class=card>
-    <summary><b>Яркость и звук</b><span class=muted>для всех режимов</span></summary>
-    <div class=body>
-    <div class=row><span class=muted>Яркость</span><b id=l-br>—</b></div>
-    <input type=range id=l-bright min=0 max=255 step=1 value=120>
-    <div class=lset data-p=punch>
-      <div class=row><span class=muted>Панч (порог удара)</span><b id=l-punch>—</b></div>
-      <input type=range id=l-punchv min=0 max=100 step=5 value=70>
-      <p class=hint>Порог удара: во сколько раз низ должен превысить своё
-      среднее за «Опору». <b>80</b> — как 150 в 2.9.9; <b>60–70</b> — чаще,
-      <b>90–100</b> — только сильные удары, <b>0</b> — выключить. Работает во
-      всех режимах.</p>
-    </div>
-    <div class=lset data-p=bref>
-      <div class=row><span class=muted>Опора удара</span><b id=l-bref>—</b></div>
-      <input type=range id=l-brefv min=100 max=1000 step=25 value=300>
-      <p class=hint>Сколько миллисекунд низ усредняется для порога.
-      <b>300 мс</b> — как в 2.9.9. Меньше — спокойнее, больше — чувствительнее
-      к плотному басу.</p>
-    </div>
-    </div>
-  </details>
-
-  <details class=card>
     <summary><b>Настройка режима</b><span class=muted>только выбранного</span></summary>
     <div class=body id=l-modeset>
+
+    <div class="lset lsub" id=l-subvu hidden>
+      <div class=row><span class=muted>Подрежим VU</span></div>
+      <div class=seg>
+        <button data-sm=0>VU</button>
+        <button data-sm=1>VU радуга</button>
+      </div>
+    </div>
+
+    <div class="lset lsub" id=l-subbands hidden>
+      <div class=row><span class=muted>Сколько полос</span></div>
+      <div class=seg>
+        <button data-sm=2>5 полос</button>
+        <button data-sm=3>3 полосы</button>
+        <button data-sm=4>1 полоса</button>
+      </div>
+    </div>
+
+    <div class="lset lsub" id=l-subspek hidden>
+      <div class=row><span class=muted>Вид спектра</span></div>
+      <div class=seg>
+        <button data-sm=7>Бегущие</button>
+        <button data-sm=8>Зеркало</button>
+      </div>
+    </div>
 
     <div class=lset data-p=spd>
       <div class=row><span class=muted>Скорость</span><b id=l-spd>—</b></div>
@@ -361,16 +385,18 @@ a{color:#5fb3ff;text-decoration:none}
       <div class=seg id=l-rgb>
         <button data-r=0>Оттенки</button>
         <button data-r=1>RGB</button>
+        <button data-r=2>Сток</button>
       </div>
       <p class=muted>«Оттенки» — змейка в оттенках одной палитры, которая
       меняется раз в несколько ударов. «RGB» — цвет плывёт вдоль тела
-      радугой.</p>
+      радугой. «Сток» — ровный цвет из ползунка «Цвет подсветки», без смены
+      палитры: с него удобно возвращаться после RGB.</p>
     </div>
 
     <div class=lset data-p=reac>
       <div class=row><span class=muted>Реакция на музыку</span><b id=l-reac>—</b></div>
       <input type=range id=l-reacv min=0 max=100 step=5 value=60>
-      <p class=muted>Насколько громкость добавляет хода поверх темпа: 0 —
+      <p class=muted>Насколько плотность музыки добавляет хода поверх темпа: 0 —
       змейка идёт только от BPM, 100 — на тихом куске почти стоит, на плотном
       летит.</p>
     </div>
@@ -424,6 +450,29 @@ a{color:#5fb3ff;text-decoration:none}
   </details>
 
   <details class=card>
+    <summary><b>Яркость и звук</b><span class=muted>для всех режимов</span></summary>
+    <div class=body>
+    <div class=row><span class=muted>Яркость</span><b id=l-br>—</b></div>
+    <input type=range id=l-bright min=0 max=255 step=1 value=120>
+    <div class=lset data-p=punch>
+      <div class=row><span class=muted>Панч (порог удара)</span><b id=l-punch>—</b></div>
+      <input type=range id=l-punchv min=0 max=100 step=5 value=70>
+      <p class=hint>Порог удара: во сколько раз низ должен превысить своё
+      среднее за «Опору». <b>80</b> — как 150 в 2.9.9; <b>60–70</b> — чаще,
+      <b>90–100</b> — только сильные удары, <b>0</b> — выключить. Работает во
+      всех режимах.</p>
+    </div>
+    <div class=lset data-p=bref>
+      <div class=row><span class=muted>Опора удара</span><b id=l-bref>—</b></div>
+      <input type=range id=l-brefv min=100 max=1000 step=25 value=300>
+      <p class=hint>Сколько миллисекунд низ усредняется для порога.
+      <b>300 мс</b> — как в 2.9.9. Меньше — спокойнее, больше — чувствительнее
+      к плотному басу.</p>
+    </div>
+    </div>
+  </details>
+
+  <details class=card>
     <summary><b>Лента</b><span class=muted>фон, диоды, автоуровень</span></summary>
     <div class=body>
     <div class=row><span class=muted>Фон ленты</span><b id=l-bg>—</b></div>
@@ -458,9 +507,10 @@ a{color:#5fb3ff;text-decoration:none}
   </details>
 
   <details class=card id=l-spec>
-    <summary>Проверка полос <span class=muted id=l-adc style="font-weight:400"></span></summary>
+    <summary>Проверка полос</summary>
     <div class=body>
       <div class=ledbars id=l-bars></div>
+      <div class=ledfreq id=l-freq></div>
       <p class=hint>16 полос 40 Гц … 6 кГц: дБ над адаптивной опорой,
       0…45 — рабочий диапазон. Опора следует за уровнем трека, поэтому
       картинка не зависит от громкости. В тишине все полосы стоят на нуле.
@@ -835,8 +885,21 @@ function syncSlots(){
 function status(){
   const on=bleOn(), s=S||{};
   const p=$('#pill');
-  p.textContent=on?((ble.dev&&ble.dev.name)||'BLE'):'Подключить';
-  p.className='pill'+(on?' ok':' bad');
+  if(on){
+    // Подключено: зелёная кнопка превращается в крупные три точки.
+    p.innerHTML='<i></i><i></i><i></i>';
+    p.className='pill ok dots';
+    p.title=((ble.dev&&ble.dev.name)||'ESP32')+' подключён по BLE — нажми, чтобы отключить';
+    p.setAttribute('aria-label','ESP32 подключён по BLE');
+  }else{
+    p.textContent='Подключить';
+    p.className='pill bad';
+    p.title='Подключить или отключить';
+    p.setAttribute('aria-label','Подключить');
+  }
+  // Версию показываем только когда она реально пришла с прошивки.
+  const verEl=$('#ver');
+  if(verEl){ verEl.hidden=!(on && s.ver); if(s.ver) verEl.textContent='v'+s.ver; }
   const off=$('#off'); if(off) off.hidden=on;
   // Без подключения «Пульт» и «Свет» не нужны: отправлять команды некуда, а
   // ползунки показывали бы пустоту. Остаются BLE и «Диаг»; если пользователь
@@ -1043,6 +1106,7 @@ let ledPoll=null, brTimer=0, bhTimer=0, softTimer=0;
 let bgTimer=0, spdTimer=0, flTimer=0, perTimer=0, hueTimer=0, fallTimer=0, punchTimer=0, brefTimer=0;
 let turnTimer=0, reacTimer=0, idleTimer=0, lenTimer=0;
 let snTimer=0, splThrTimer=0;
+let spdDrag=false, spdDragT=0;   // пока палец на ползунке скорости — не перебиваем его опросом
 
 // Какие настройки есть у каждого режима (совпадает с тем, что реально
 // используется в render() прошивки). «Фон» и «Яркость» — общие для всех,
@@ -1062,7 +1126,7 @@ const LSET={
   11:['fall'],             // импульс — спад
   12:['fall'],             // Мембрана — спад волны
   13:['spd','fall'],       // комета — скорость бега и длина хвоста
-  14:['spd','fall','turn','rgb','reac','idle','len','sn','spl','splk']  // змейка — скорость, хвост, разворот, цвет, реакция, тишина, длина, число змеек, разрыв, порог разрыва
+  14:['spd','fall','turn','rgb','hue','reac','idle','len','sn','spl','splk']  // змейка — скорость, хвост, разворот, цвет, сток-цвет, реакция, тишина, длина, число змеек, разрыв, порог разрыва
 };
 
 const MDESC=[
@@ -1083,9 +1147,31 @@ const MDESC=[
   'Змейка: змейки с градиентом идут по ленте в темпе трека, на удар разворачиваются и вспыхивают случайным цветом, палитра меняется раз в несколько ударов. На бочку змейка умеет рваться на две половинки.'
 ];
 
+const MNAMES=['VU','VU радуга','Полосы: 5','Полосы: 3','Полоса: 1','Строб','Цвет','Спектр: бегущие','Спектр: зеркало','Смена цвета','Радуга','Импульс','Мембрана','Комета','Змейка'];
+
+// В пульте близкие режимы объединены в один пункт с подрежимами, но в
+// прошивку по-прежнему уходит номер конкретного режима (0…14) — сохранённые
+// настройки и старые прошивки продолжают работать.
+function modeGroup(m){
+  if(m===0||m===1) return 0;        // VU: обычный / радуга
+  if(m>=2&&m<=4) return 2;          // полосы: 5 / 3 / 1
+  if(m===7||m===8) return 7;        // спектр: бегущие / зеркало
+  return m;
+}
+
 function applyModeUI(m){
   const keys=LSET[m]||[];
-  $$('#l-modeset .lset').forEach(el=>{ el.hidden = keys.indexOf(el.dataset.p)<0; });
+  $$('#l-modeset .lset').forEach(el=>{
+    if(el.classList.contains('lsub')) return;
+    el.hidden = keys.indexOf(el.dataset.p)<0;
+  });
+  const g=modeGroup(m);
+  const nm=$('#l-mode'); if(nm) nm.textContent=(MNAMES[m]||'—');
+  $$('#l-modes button').forEach(b=>b.classList.toggle('on',+b.dataset.m===g));
+  const sv=$('#l-subvu');    if(sv) sv.hidden = g!==0;
+  const sb=$('#l-subbands'); if(sb) sb.hidden = g!==2;
+  const ss=$('#l-subspek');  if(ss) ss.hidden = g!==7;
+  $$('.lsub button').forEach(b=>b.classList.toggle('on',+b.dataset.sm===m));
   const none=$('#l-none'); if(none) none.hidden = keys.length>0;
   const d=$('#l-mdesc'); if(d) d.textContent=MDESC[m]||'';
 }
@@ -1114,8 +1200,6 @@ function syncLed(){
   const br=$('#l-bright');
   if(br && br!==document.activeElement) br.value=L.br;
   const bl=$('#l-br');   if(bl) bl.textContent=L.br+' / 255';
-  const md=$('#l-mode'); if(md) md.textContent=(['VU','VU радуга','5 полос','3 полосы','1 полоса','Строб','Цвет','Бегущие','Спектр','Смена цвета','Радуга','Импульс','Мембрана','Комета','Змейка'][L.mode]||'—');
-  $$('#l-modes button').forEach(b=>b.classList.toggle('on',+b.dataset.m===L.mode));
   applyModeUI(L.mode);
   const bgv=$('#l-bgv');
   if(bgv && bgv!==document.activeElement) bgv.value=(L.bg==null?0:L.bg);
@@ -1129,9 +1213,9 @@ function syncLed(){
   if(sl) sl.textContent=['выкл','лёгкое','среднее','сильное'][L.soft==null?0:L.soft]||'выкл';
   const dt=$('#l-dith'); if(dt) dt.checked=(L.dith==null?1:L.dith)?true:false;
   const spv=$('#l-spdv');
-  if(spv && spv!==document.activeElement) spv.value=Math.round((L.spd==null?5:L.spd)*10);
+  if(spv && spv!==document.activeElement && !spdDrag) spv.value=Math.round((L.spd==null?1:L.spd)*50);
   const spl=$('#l-spd');
-  if(spl) spl.textContent=(L.spd==null?5:L.spd).toFixed(1)+'×';
+  if(spl && !spdDrag) spl.textContent=(L.spd==null?1:L.spd).toFixed(1)+'×';
   const flv=$('#l-flv');
   if(flv && flv!==document.activeElement) flv.value=Math.round((L.fl==null?1.3:L.fl)*10);
   const fll=$('#l-fl');
@@ -1152,8 +1236,10 @@ function syncLed(){
   if(tuv && tuv!==document.activeElement) tuv.value=(L.turn==null?50:L.turn);
   const tul=$('#l-turn');
   if(tul) tul.textContent=(L.turn==null?50:L.turn)+' %';
-  $$('#l-rgb button').forEach(b=>b.classList.toggle('on',+b.dataset.r===(L.rgb==null?0:L.rgb)));
-  const rgl=$('#l-rgb-l'); if(rgl) rgl.textContent=L.rgb?'RGB':'оттенки';
+  const rgv=L.rgb==null?0:L.rgb;
+  $$('#l-rgb button').forEach(b=>b.classList.toggle('on',+b.dataset.r===rgv));
+  const rgl=$('#l-rgb-l');
+  if(rgl) rgl.textContent=rgv===1?'RGB':(rgv===2?'сток':'оттенки');
   const rcv=$('#l-reacv');
   if(rcv && rcv!==document.activeElement) rcv.value=(L.reac==null?60:L.reac);
   const rcl=$('#l-reac');
@@ -1186,8 +1272,6 @@ function syncLed(){
   if(brl) brl.textContent=(L.brefms==null?300:L.brefms)+' мс';
   const cn=$('#l-cnt');
   if(cn && cn!==document.activeElement) cn.value=L.cnt;
-  const ad=$('#l-adc');
-  if(ad) ad.innerHTML=L.adc?'<span class=ok>ADC есть</span>':'<span class=bad>нет ADC</span>';
 }
 
 async function ledCmd(cmd,quiet){
@@ -1208,6 +1292,51 @@ function drawBands(db){
     const v=Math.max(0,Math.min(1,(db[i]||0)/45));
     el.style.height=Math.max(2,Math.round(v*86))+'px';
     el.classList.toggle('off',v<0.04);
+  });
+}
+
+// Подписи под спектром: 16 полос, но числа ставим через три, иначе на
+// телефоне они наезжают друг на друга. Частоты — начала полос.
+function buildFreqLabels(){
+  const box=$('#l-freq'); if(!box||box.children.length) return;
+  const show={0:'40',3:'100',6:'250',9:'630',12:'1.6k',15:'5.4k'};
+  for(let i=0;i<16;i++){
+    const s=document.createElement('span');
+    s.textContent=show[i]||'';
+    box.appendChild(s);
+  }
+}
+
+// Комментарии у ползунков прячем в кружок «!»: на телефоне текст больше
+// не растягивает карточки, а подсказка открывается по тапу.
+function setupTips(){
+  $$('.lset').forEach(l=>{
+    const p=l.querySelector(':scope > p.hint, :scope > p.muted');
+    if(!p) return;
+    const row=l.querySelector(':scope > .row');
+    if(!row) return;
+    const tip=document.createElement('span');
+    tip.className='tip';
+    tip.setAttribute('role','button');
+    tip.setAttribute('tabindex','0');
+    tip.setAttribute('aria-label','Подсказка');
+    tip.textContent='!';
+    const bub=document.createElement('span');
+    bub.className='bub';
+    bub.innerHTML=p.innerHTML;
+    tip.appendChild(bub);
+    const label=row.querySelector('span.muted')||row.firstElementChild||row;
+    label.appendChild(tip);
+    p.remove();
+  });
+  document.addEventListener('click',e=>{
+    if(e.target.closest('.bub')) return;
+    const t=e.target.closest('.tip');
+    $$('.tip.on').forEach(x=>{ if(x!==t) x.classList.remove('on'); });
+    if(t) t.classList.toggle('on');
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape') $$('.tip.on').forEach(x=>x.classList.remove('on'));
   });
 }
 
@@ -1235,8 +1364,19 @@ if(specCard) specCard.addEventListener('toggle',()=>{
 function ledTest(){ ledCmd('test').then(r=>{ if(r) toast('тест 3 с'); }); }
 
 $$('#l-modes button').forEach(b=>b.onclick=()=>{
-  const m=+b.dataset.m;
+  const g=+b.dataset.m;
+  const cur=(S&&S.led)?S.led.mode:-1;
+  // Повторный тап по уже выбранной группе не сбрасывает подрежим.
+  const m=(modeGroup(cur)===g)?cur:g;
   $$('#l-modes button').forEach(x=>x.classList.toggle('on',x===b));
+  applyModeUI(m);
+  ledCmd('mode '+m);
+});
+// Подрежимы объединённых пунктов: в прошивку уходит точный номер режима.
+$$('.lsub button').forEach(b=>b.onclick=()=>{
+  const m=+b.dataset.sm;
+  $$('.lsub button').forEach(x=>x.classList.toggle('on',x===b));
+  $$('#l-modes button').forEach(x=>x.classList.toggle('on',+x.dataset.m===modeGroup(m)));
   applyModeUI(m);
   ledCmd('mode '+m);
 });
@@ -1284,10 +1424,23 @@ $('#l-softv').oninput=e=>{
 $('#l-dith').onchange=e=>ledCmd('dither '+(e.target.checked?1:0),true);
 $('#l-spdv').oninput=e=>{
   const v=+e.target.value;
-  const b=$('#l-spd'); if(b) b.textContent=(v/10).toFixed(1)+'×';
+  const b=$('#l-spd'); if(b) b.textContent=(v/50).toFixed(1)+'×';
   clearTimeout(spdTimer);
-  spdTimer=setTimeout(()=>ledCmd('spd '+(v/10).toFixed(1),true),120);
+  // В прошивку уходит реальный множитель (0.1…4.0), а не номер ползунка.
+  spdTimer=setTimeout(()=>ledCmd('spd '+(v/50).toFixed(2),true),120);
 };
+{
+  const spv=$('#l-spdv');
+  if(spv){
+    const hold=()=>{spdDrag=true;clearTimeout(spdDragT);};
+    const release=()=>{clearTimeout(spdDragT);spdDragT=setTimeout(()=>{spdDrag=false;},400);};
+    spv.addEventListener('pointerdown',hold);
+    spv.addEventListener('pointerup',release);
+    spv.addEventListener('pointercancel',release);
+    spv.addEventListener('touchstart',hold,{passive:true});
+    spv.addEventListener('touchend',release);
+  }
+}
 $('#l-flv').oninput=e=>{
   const v=+e.target.value;
   const b=$('#l-fl'); if(b) b.textContent=v?((v/10).toFixed(1)+'×'):'выкл';
@@ -1494,6 +1647,8 @@ if(!S) $('#params').innerHTML='<div class=card><b>Плата не подключ
   '<p class=hint>Нажми «Подключить» в шапке или открой вкладку <b>BLE</b> внизу.<br>'+
   'Дальше пульт сам подтянет настройки.</p></div>';
 
+setupTips();
+buildFreqLabels();
 status();
 applyModeUI(0);          // до подключения показываем настройки VU, а не все сразу
 autoBle();
