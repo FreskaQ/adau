@@ -35,7 +35,6 @@ section.page{padding:0 14px}
 .dot.ok{background:#54d977;box-shadow:0 0 6px #54d97799}
 .dot.bad{background:#ff7b72;box-shadow:0 0 6px #ff7b7299}
 /* BLE — крупная точка (она же кнопка), ADAU — маленькая и мягко пульсирует */
-.dot.big{width:14px;height:14px}
 .dot.small{width:7px;height:7px}
 .dot.small.ok{animation:adpulse 1.8s ease-in-out infinite}
 @keyframes adpulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -131,19 +130,18 @@ a{color:#5fb3ff;text-decoration:none}
   header{padding:10px 14px;gap:10px;border-bottom:1px solid #1b2433}
   header .brand{display:flex;flex-direction:column;line-height:1.15;flex:1;min-width:0}
   header b{font-size:16px}
-  .hstat{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;margin-right:-10px}
+  .hstat{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;margin-left:2px;margin-right:2px}
   /* BLE и «Диаг» переехали из нижнего меню в шапку — маленькими иконками */
   .hact{display:flex;gap:2px;flex:0 0 auto}
   .hicon{display:flex;align-items:center;justify-content:center;width:34px;height:34px;
     padding:0;margin:0;border-radius:9px;background:transparent;color:#8b98ac}
   .hicon svg{width:19px;height:19px;display:block}
   .hicon.on{background:#28344a;color:#eaf1ff}
+  /* кнопка BLE справа: красная без связи, зелёная с ней */
+  .hicon.bt{color:#ff7b72;background:rgba(255,123,114,.13)}
+  .hicon.bt.ok{color:#54d977;background:rgba(84,217,119,.14)}
   .hicon:active{transform:scale(.94)}
   /* компактная плашка подключения — как полоса под шапкой */
-  /* крупная точка BLE справа — она же кнопка подключения */
-  .dotwrap{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;
-    padding:0;margin:0;border-radius:50%;background:transparent;flex:0 0 auto}
-  .dotwrap:active{transform:scale(.94)}
   .connbar{display:flex;align-items:center;gap:10px;
     background:linear-gradient(135deg,#1d2a44,#182031);border:1px solid #2c3d5e}
   .connbar.on{background:linear-gradient(135deg,#14301f,#121b24);border-color:#24503a}
@@ -250,13 +248,10 @@ a{color:#5fb3ff;text-decoration:none}
 <header>
  <div class=brand><b>ADAU DSP</b><small class=ver id=ver hidden></small></div>
  <div class=hact>
-  <button class="hicon on" data-t=conn onclick=showTab('conn') title="Подключение и OTA" aria-label="Подключение и OTA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg></button>
   <button class=hicon data-t=diag onclick=showTab('diag') title="Диагностика" aria-label="Диагностика"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V5M4 19h16M8 15v-4M12 15V8M16 15v-6"/></svg></button>
  </div>
+ <button class="hicon bt" id=btn-bt data-t=conn onclick=showTab('conn') title="Плата не подключена — открыть подключение" aria-label="Подключение"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg></button>
  <span class=hstat><i class="dot small" id=dot-adau title="ADAU1701"></i></span>
- <button id=pill class=dotwrap onclick=bleToggle() title="Подключить или отключить" aria-label="Подключить">
-  <i class="dot big bad" id=dot-link title="Связь BLE"></i>
- </button>
 </header>
 
 <nav id=nav>
@@ -281,9 +276,9 @@ a{color:#5fb3ff;text-decoration:none}
     </div>
     <button id=c-btn onclick=bleToggle()>Подключить</button>
   </div>
-  <p class=hint>Две точки справа в шапке: маленькая — отвечает ли ADAU1701,
-  крупная — есть ли связь BLE. Нажми на крупную, чтобы подключиться или
-  отключиться.</p>
+  <p class=hint>Справа в шапке: кнопка Bluetooth — красная без связи, зелёная
+  с ней; нажми на неё, чтобы открыть эту страницу. Кружок правее — отвечает ли
+  ADAU1701.</p>
   <p class=hint>Плата <b>ADAU-DSP</b> рядом (до ~10 м). Chrome спросит
   разрешение на Bluetooth — выбери устройство <b>ADAU-DSP</b>. Если списка
   нет, включи геолокацию: Android без неё не сканирует BLE.</p>
@@ -952,11 +947,14 @@ function syncSlots(){
 
 function status(){
   const on=bleOn(), s=S||{};
-  const p=$('#pill');
-  if(p){
-    p.className='dotwrap';
-    p.title=on?'Отключиться от платы':'Подключиться к плате';
-    p.setAttribute('aria-label',p.title);
+  // Кнопка BLE в шапке: красная без связи, зелёная с ней; клик открывает
+  // страницу подключения (showTab('conn') в onclick).
+  const btb=$('#btn-bt');
+  if(btb){
+    btb.classList.toggle('ok',on);
+    btb.title=on?'Плата подключена — открыть страницу'
+                :'Плата не подключена — открыть подключение';
+    btb.setAttribute('aria-label',btb.title);
   }
   // Версию показываем только когда она реально пришла с прошивки.
   const verEl=$('#ver');
@@ -973,12 +971,7 @@ function status(){
     if(cur && (cur.id==='main' || cur.id==='light' || cur.id==='batt'))
       showTab('conn');
   }
-  const dl0=$('#dot-link'), da0=$('#dot-adau');
-  if(dl0){
-    dl0.className='dot big '+(on?'ok':'bad');
-    dl0.title=on?'BLE: подключено':'BLE: нет связи';
-    dl0.setAttribute('aria-label',dl0.title);
-  }
+  const da0=$('#dot-adau');
   if(da0){
     da0.className='dot small '+(s.adau?'ok':'bad');
     da0.title=s.adau?'ADAU1701: отвечает':'ADAU1701: нет ответа';
